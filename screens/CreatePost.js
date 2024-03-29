@@ -88,7 +88,6 @@ const CreatePost = props => {
       const PostRef = await firestore().collection('Posts').add(PostData);
       console.log('Post posted');
 
-      //data is posted now for image
       if (image !== null) {
         const postId = PostRef.id;
         const reference = storage().ref(`Post${postId}`);
@@ -129,7 +128,7 @@ const CreatePost = props => {
                 style={styles.input}
                 placeholder={`Enter title`}
                 placeholderTextColor="gray"
-                maxLength={50}
+                maxLength={60}
                 value={title}
                 onChangeText={text => {
                   setTitle(text);

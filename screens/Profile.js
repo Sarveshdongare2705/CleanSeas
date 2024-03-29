@@ -69,6 +69,8 @@ const Profile = ({navigation}) => {
     }, []),
   );
 
+  console.log(userData)
+
   return (
     <View style={styles.container}>
       {uploading ? (
@@ -117,11 +119,19 @@ const Profile = ({navigation}) => {
               <Text
                 style={{
                   color: 'black',
-                  fontSize: 33,
+                  fontSize: 27,
                   fontWeight: '900',
                   marginTop: 10,
                 }}>
                 {currentUser && userData ? userData.Username : ''}
+              </Text>
+              <Text
+                style={{
+                  color: 'lightgray',
+                  fontSize: 16,
+                  fontWeight: '900',
+                }}>
+                {currentUser && userData ? userData.Location : ''}
               </Text>
               {currentUser && userData && (
                 <TouchableOpacity
@@ -141,7 +151,7 @@ const Profile = ({navigation}) => {
                   </Text>
                 </TouchableOpacity>
               )}
-              {currentUser && userData && userData.role === 'Yes' ? (
+              {currentUser && userData && userData.Role.trim() === 'Organization' ? (
                 <View
                   style={{
                     marginTop: 10,

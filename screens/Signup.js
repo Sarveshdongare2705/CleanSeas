@@ -22,7 +22,8 @@ const Signup = props => {
   const [nameerr, setNameErr] = useState('');
   const [passworderr, setPasswordErr] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedRole, setSelectedRole] = useState('No');
+  const [selectedRole, setSelectedRole] = useState('');
+  const [roleErr, setRoleErr] = useState('');
 
   useFocusEffect(
     React.useCallback(() => {
@@ -32,6 +33,8 @@ const Signup = props => {
       setEmailErr('');
       setNameErr('');
       setPasswordErr('');
+      setSelectedRole('');
+      setRoleErr('');
     }, []),
   );
 
@@ -51,7 +54,12 @@ const Signup = props => {
     } else {
       setNameErr('');
     }
-    if (name !== '' && email !== '' && password !== '') {
+    if (selectedRole == '') {
+      setRoleErr('Please enter valid Role');
+    } else {
+      setRoleErr('');
+    }
+    if (name !== '' && email !== '' && password !== '' && selectedRole !== '') {
       try {
         const res = await auth().createUserWithEmailAndPassword(
           email,
@@ -61,7 +69,7 @@ const Signup = props => {
         if (res) {
           firestore()
             .collection('Users')
-            .add({Username: name, Useremail: email})
+            .add({Username: name, Useremail: email , Role : selectedRole})
             .then(() => {
               console.log('User data added');
             });
@@ -89,19 +97,7 @@ const Signup = props => {
   };
   return (
     <ScrollView>
-      <View style={styles.container}>
-        <TouchableOpacity onPress={() => props.navigation.navigate('Welcome')}>
-          <Text
-            style={{
-              fontWeight: '100',
-              fontSize: 15,
-              color: 'lightgray',
-              marginTop: 20,
-              marginBottom: -20,
-            }}>
-            Back
-          </Text>
-        </TouchableOpacity>
+      <View style={[styles.container]}>
         <View>
           <Text
             style={{
@@ -147,7 +143,7 @@ const Signup = props => {
                 onChangeText={text => setName(text)}
                 value={name}
                 placeholderTextColor="gray"
-                maxLength={20}
+                maxLength={30}
                 style={styles.input}></TextInput>
             </View>
             <Text style={styles.err}>{nameerr}</Text>
@@ -180,8 +176,25 @@ const Signup = props => {
             </View>
             <Text style={styles.err}>{passworderr}</Text>
           </View>
+          <View style={styles.element}>
+            <Text style={styles.title}>Role</Text>
+            <View style={styles.inputelement}>
+              <Image
+                source={require('../assets/role.png')}
+                style={{width: 20, height: 20, margin: 12}}
+              />
+              <TextInput
+                placeholder="Individual or Organization ?"
+                onChangeText={text => setSelectedRole(text)}
+                value={selectedRole}
+                placeholderTextColor="gray"
+                maxLength={20}
+                style={styles.input}></TextInput>
+            </View>
+            <Text style={styles.err}>{roleErr}</Text>
+          </View>
           <TouchableOpacity
-            style={[styles.button, styles.signUpButton]}
+            style={[styles.button, styles.signUpButton, {marginTop: 0}]}
             onPress={handleSignUp}>
             <Text style={{fontWeight: '900', fontSize: 15}}>Sign Up</Text>
           </TouchableOpacity>
@@ -223,7 +236,7 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   element: {
-    marginTop: -10,
+    marginTop: -20,
     flexDirection: 'column',
     gap: 7,
   },

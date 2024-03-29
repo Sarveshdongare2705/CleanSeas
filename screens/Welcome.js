@@ -11,7 +11,7 @@ import {
 const Welcome = props => {
   const [typedText, setTypedText] = useState('');
   const subheading =
-    'Welcome aboard to the OceanGuard, your digital companion in our collective journey towards cleaner oceans';
+    'Welcome aboard to the CleanSeas, your digital companion in our collective journey towards cleaner oceans';
 
   useEffect(() => {
     const typingEffect = setInterval(() => {
@@ -30,7 +30,7 @@ const Welcome = props => {
         <View style={styles.content}>
           <View style={styles.heading}>
             <Text style={styles.headingText}>
-              <Text style={{color: 'white', fontSize: 70}}>O</Text>ceanGuard
+              <Text style={{color: 'white', fontSize: 70}}>C</Text>leanSeas
             </Text>
             <Text style={styles.subheadingText}>{typedText}</Text>
           </View>

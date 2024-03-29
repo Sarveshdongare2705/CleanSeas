@@ -48,12 +48,12 @@ const EventDetails = ({route}) => {
         const url = await storage().ref(filename).getDownloadURL();
         participatedUsers.push({email: userEmail, uri: url});
       }
+      setCount(participatedUsers.length);
 
       setParticipatedUsers(participatedUsers);
     } catch (error) {
       console.error('Error fetching participated users:', error);
     }
-    setCount(participatedUsers.length);
   };
 
   const fetchPostDetails = async () => {
@@ -229,8 +229,8 @@ const EventDetails = ({route}) => {
                   Linking.openURL(`tel:${post.Contact}`);
                 }}
                 style={{
-                  width : 50,
-                  height : 50
+                  width: 50,
+                  height: 50,
                 }}>
                 <Image
                   source={require('../assets/mobile.png')}
@@ -238,155 +238,255 @@ const EventDetails = ({route}) => {
                 />
               </TouchableOpacity>
             </View>
-            <ScrollView
-              refreshControl={
-                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-              }>
-              <View style={styles.box}>
-                <Image
-                  source={require('../assets/title.png')}
-                  style={{width: 30, height: 30}}
-                />
-                <Text style={styles.title}>{post.Title}</Text>
-              </View>
-              <Text style={styles.org}>{post.Organization}</Text>
-              <View style={[styles.box, {marginTop: 10, marginLeft: 10}]}>
-                <View
-                  style={{flexDirection: 'row', gap: 5, alignItems: 'center'}}>
-                  {profileImg && (
-                    <Image
-                      source={{uri: profileImg}}
-                      style={{width: 40, height: 40, borderRadius: 100}}
-                    />
-                  )}
-                  <View style={{}}>
-                    <Text style={{color: 'black', fontSize: 16}}>
-                      {userData ? userData.Username : 'Loading ...'}
-                    </Text>
-                    <Text style={{color: 'gray', fontSize: 12}}>
-                      {userData ? userData.Useremail : ''}
-                    </Text>
-                  </View>
+            <View style={{paddingTop : 10}}>
+              <ScrollView
+                refreshControl={
+                  <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                  />
+                }>
+                <View style={styles.box}>
+                  <Image
+                    source={require('../assets/title.png')}
+                    style={{width: 30, height: 30}}
+                  />
+                  <Text style={styles.title}>{post.Title}</Text>
                 </View>
-              </View>
-              <View
-                style={{
-                  marginTop: 20,
-                  marginLeft: 10,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 20,
-                }}>
-                <View style={{flexDirection: 'row', marginTop: 10}}>
-                  <View style={{width: 150 , marginRight : 10}}>
-                    <ScrollView horizontal>
-                      {participatedUsers.map((user, index) => (
-                        <Image
-                          key={index}
-                          source={{uri: user.uri}}
+                <Text style={styles.org}>
+                  {post.Organization + ' Organization'}
+                </Text>
+                <View
+                  style={{
+                    marginTop: 15,
+                    borderTopWidth: 0.2,
+                    borderTopColor: 'lightgray',
+                    marginLeft: 10,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 20,
+                  }}>
+                  {post && (
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 90,
+                        marginLeft: 10,
+                      }}>
+                      <View style={{flexDirection: 'column'}}>
+                        <View
                           style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 20,
-                            marginLeft: index > 0 ? -18 : 0,
-                            borderWidth: 1.7,
-                            borderColor: 'white',
-                          }}
-                        />
-                      ))}
-                    </ScrollView>
-                  </View>
+                            flexDirection: 'row',
+                            marginTop: 7,
+                            gap: 7,
+                            alignItems: 'center',
+                          }}>
+                          <Image
+                            source={require('../assets/date.png')}
+                            style={{width: 20, height: 20}}
+                          />
+                          <Text style={{color: 'black', fontSize: 13}}>
+                            {post.Date}
+                          </Text>
+                        </View>
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            marginTop: 7,
+                            gap: 7,
+                            alignItems: 'center',
+                          }}>
+                          <Image
+                            source={require('../assets/time.png')}
+                            style={{width: 20, height: 20}}
+                          />
+                          <Text style={{color: 'black', fontSize: 13}}>
+                            {post.Time}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={{flexDirection: 'column'}}>
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            marginTop: 7,
+                            gap: 7,
+                            alignItems: 'center',
+                          }}>
+                          <Image
+                            source={require('../assets/location.png')}
+                            style={{width: 20, height: 20}}
+                          />
+                          <Text style={{color: 'black', fontSize: 13}}>
+                            {post.Location}
+                          </Text>
+                        </View>
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            marginTop: 7,
+                            gap: 7,
+                            alignItems: 'center',
+                          }}>
+                          <Image
+                            source={require('../assets/city.png')}
+                            style={{width: 20, height: 20}}
+                          />
+                          <Text style={{color: 'black', fontSize: 13}}>
+                            {post.City}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
+                </View>
+                <View style={[styles.box, {marginTop: 10, marginLeft: 10}]}>
                   <View
                     style={{
                       flexDirection: 'row',
-                      gap: -7,
+                      gap: 5,
                       alignItems: 'center',
-                      marginRight : -20
                     }}>
-                    <Image
-                      source={require('../assets/profile.png')}
-                      style={{width: 20, height: 20}}
-                    />
-                    <Text
-                      style={{
-                        color: 'black',
-                        width: 40,
-                        height: 40,
-                        borderRadius: 20,
-                        textAlign: 'center',
-                        color: 'black',
-                        fontSize: 24,
-                        paddingTop: 2,
-                      }}>
-                      {count}
-                    </Text>
+                    {profileImg && (
+                      <Image
+                        source={{uri: profileImg}}
+                        style={{width: 40, height: 40, borderRadius: 100}}
+                      />
+                    )}
+                    <View style={{}}>
+                      <Text style={{color: 'black', fontSize: 16}}>
+                        {userData ? userData.Username : 'Loading ...'}
+                      </Text>
+                      <Text style={{color: 'gray', fontSize: 12}}>
+                        {userData ? userData.Useremail : ''}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-
-                <View style={{width: 300, height: 40, marginTop: 7}}>
-                  {user && userData && user.Useremail !== userData.Useremail ? (
-                    !participated ? (
-                      <TouchableOpacity
-                        onPress={handleParticipate}
-                        style={{
-                          padding: 9,
-                          color: 'white',
-                          borderWidth: 1,
-                          borderColor: 'black',
-                          backgroundColor: 'black',
-                          width: '36%',
-                        }}>
-                        <Text
-                          style={{
-                            color: 'white',
-                            fontWeight: 'bold',
-                            textAlign: 'center',
-                          }}>
-                          Participate
-                        </Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <TouchableOpacity
-                        onPress={cancelParticipate}
-                        style={{
-                          padding: 9,
-                          color: 'white',
-                          borderWidth: 1,
-                          borderColor: 'black',
-                          backgroundColor: 'black',
-                          width: '36%',
-                        }}>
-                        <Text
-                          style={{
-                            color: 'white',
-                            fontWeight: 'bold',
-                            textAlign: 'center',
-                          }}>
-                          Participated
-                        </Text>
-                      </TouchableOpacity>
-                    )
-                  ) : (
-                    <View></View>
-                  )}
-                </View>
-              </View>
-              <View>
-                <Text
+                <View
                   style={{
-                    color: 'black',
-                    margin: 10,
-                    textAlign: 'justify',
-                    fontSize: 20,
+                    marginTop: 20,
+                    marginLeft: 10,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 20,
                   }}>
-                  Description
-                </Text>
-                <Text
-                  style={{color: 'black', margin: 10, textAlign: 'justify'}}>
-                  {post.Description}
-                </Text>
-              </View>
-            </ScrollView>
+                  <View style={{flexDirection: 'row', marginTop: 10}}>
+                    <View style={{width: 150, marginRight: 10}}>
+                      <ScrollView horizontal>
+                        {participatedUsers.map((user, index) => (
+                          <Image
+                            key={index}
+                            source={{uri: user.uri}}
+                            style={{
+                              width: 40,
+                              height: 40,
+                              borderRadius: 20,
+                              marginLeft: index > 0 ? -18 : 0,
+                              borderWidth: 1.7,
+                              borderColor: 'white',
+                            }}
+                          />
+                        ))}
+                      </ScrollView>
+                    </View>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        gap: -7,
+                        alignItems: 'center',
+                        marginRight: -20,
+                      }}>
+                      <Image
+                        source={require('../assets/people.png')}
+                        style={{width: 20, height: 20}}
+                      />
+                      <Text
+                        style={{
+                          color: 'black',
+                          width: 40,
+                          height: 40,
+                          borderRadius: 20,
+                          textAlign: 'center',
+                          color: 'black',
+                          fontSize: 24,
+                          paddingTop: 2,
+                        }}>
+                        {count}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={{width: 300, height: 40, marginTop: 10}}>
+                    {user &&
+                    userData &&
+                    user.Useremail !== userData.Useremail &&
+                    user.Role.trim() !== 'Organization' ? (
+                      !participated ? (
+                        <TouchableOpacity
+                          onPress={handleParticipate}
+                          style={{
+                            padding: 9,
+                            color: 'white',
+                            borderWidth: 1,
+                            borderColor: 'black',
+                            backgroundColor: 'black',
+                            width: '36%',
+                          }}>
+                          <Text
+                            style={{
+                              color: 'white',
+                              fontWeight: 'bold',
+                              textAlign: 'center',
+                            }}>
+                            Participate
+                          </Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity
+                          onPress={cancelParticipate}
+                          style={{
+                            padding: 9,
+                            color: 'white',
+                            borderWidth: 1,
+                            borderColor: 'black',
+                            backgroundColor: 'black',
+                            width: '36%',
+                          }}>
+                          <Text
+                            style={{
+                              color: 'white',
+                              fontWeight: 'bold',
+                              textAlign: 'center',
+                            }}>
+                            Participated
+                          </Text>
+                        </TouchableOpacity>
+                      )
+                    ) : (
+                      <View></View>
+                    )}
+                  </View>
+                </View>
+                <View>
+                  <Text
+                    style={{
+                      color: 'black',
+                      margin: 10,
+                      textAlign: 'justify',
+                      fontSize: 20,
+                      borderBottomWidth: 0.2,
+                      borderBottomColor: 'lightgray',
+                    }}>
+                    Description
+                  </Text>
+                  <Text style={{color: 'black', margin: 10}}>
+                    {post.Description}
+                  </Text>
+                </View>
+              </ScrollView>
+            </View>
           </View>
         </View>
         <BottomNavigation />
@@ -399,6 +499,7 @@ export default EventDetails;
 
 const styles = StyleSheet.create({
   box: {
+    width: 300,
     flexDirection: 'row',
     paddingTop: 10,
     paddingLeft: 5,

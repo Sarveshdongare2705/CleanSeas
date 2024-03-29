@@ -15,6 +15,7 @@ import Image from './screens/Image';
 import CreateDrive from './screens/CreateDrive';
 import DatePicker from 'react-native-date-picker';
 import EventDetails from './screens/EventDetails';
+import Chat from './screens/Chat';
 
 const Stack = createNativeStackNavigator();
 
@@ -34,7 +35,7 @@ const App = () => {
     return <Loader />; 
   }
 
-  const initialRouteName = currentUser ? 'CreateDrive ' : 'Welcome';
+  const initialRouteName = currentUser ? 'Home ' : 'Welcome';
 
   return (
     <NavigationContainer>
@@ -52,6 +53,7 @@ const App = () => {
         <Stack.Screen name="Image" component={Image} />
         <Stack.Screen name="CreateDrive" component={CreateDrive} />
         <Stack.Screen name="EventDetails" component={EventDetails} />
+        <Stack.Screen name="Chat" component={Chat} />
       </Stack.Navigator>
     </NavigationContainer>
   );

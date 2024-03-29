@@ -16,6 +16,7 @@ import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 import {useFocusEffect} from '@react-navigation/native';
 import Geolocation from 'react-native-geolocation-service';
+import Loader from '../components/Loader';
 
 const Home = props => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -25,37 +26,43 @@ const Home = props => {
   const [events, setEvents] = useState([]);
   const [eventUser, setEventUser] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [loc , setLoc] = useState('');
 
   const getEvents = async () => {
-    try {
-      const eventsSnapshot = await firestore().collection('Events').get();
-      const eventsData = [];
-      await Promise.all(
-        eventsSnapshot.docs.map(async doc => {
-          const eventData = {id: doc.id, ...doc.data()};
-          const userSnapshot = await firestore()
-            .collection('Users')
-            .where('Useremail', '==', eventData.Useremail)
-            .get();
-          if (!userSnapshot.empty) {
-            const userData = userSnapshot.docs[0].data();
-            const filename = `${`Event${eventData.id}`}`;
-            try {
-              const url = await storage().ref(filename).getDownloadURL();
-              eventData.uri = url;
-              const file2 = `${eventData.Useremail}`;
-              const url2 = await storage().ref(file2).getDownloadURL();
-              eventData.uri2 = url2;
-            } catch (error) {
-              eventData.uri = null;
+    if (loc) {
+      try {
+        const eventsSnapshot = await firestore()
+          .collection('Events')
+          .where('City', '==', loc)
+          .get();
+        const eventsData = [];
+        await Promise.all(
+          eventsSnapshot.docs.map(async doc => {
+            const eventData = {id: doc.id, ...doc.data()};
+            const userSnapshot = await firestore()
+              .collection('Users')
+              .where('Useremail', '==', eventData.Useremail)
+              .get();
+            if (!userSnapshot.empty) {
+              const userData = userSnapshot.docs[0].data();
+              const filename = `${`Event${eventData.id}`}`;
+              try {
+                const url = await storage().ref(filename).getDownloadURL();
+                eventData.uri = url;
+                const file2 = `${eventData.Useremail}`;
+                const url2 = await storage().ref(file2).getDownloadURL();
+                eventData.uri2 = url2;
+              } catch (error) {
+                eventData.uri = null;
+              }
             }
-          }
-          eventsData.push(eventData);
-        }),
-      );
-      setEvents(eventsData);
-    } catch (err) {
-      console.error(err);
+            eventsData.push(eventData);
+          }),
+        );
+        setEvents(eventsData);
+      } catch (err) {
+        console.error(err);
+      }
     }
   };
 
@@ -68,6 +75,7 @@ const Home = props => {
       if (!userSnapShot.empty) {
         const userData = userSnapShot.docs[0].data();
         setUserData(userData);
+        setLoc(userData.Location)
         const filename = `${userData.Useremail}`;
         try {
           url = await storage().ref(filename).getDownloadURL();
@@ -132,8 +140,8 @@ const Home = props => {
       const unsubscribe = auth().onAuthStateChanged(user => {
         setCurrentUser(user);
         fetchUserData(user);
-        requestLocationPermission();
         getEvents();
+        requestLocationPermission();
       });
 
       return unsubscribe;
@@ -189,153 +197,158 @@ const Home = props => {
             </View>
           </ImageBackground>
         </View>
-        <View>
-          <Text
-            style={{
-              color: 'black',
-              fontSize: 23,
-              fontWeight: 'bold',
-              padding: 10,
-            }}>
-            Upcoming Events
-          </Text>
-        </View>
         <ScrollView
-          horizontal
-          style={{margin: 10}}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }>
-          {events.map(event => (
-            <View
-              key={event.id}
+          <View>
+            <Text
               style={{
-                borderWidth: 0.3,
-                borderColor: 'gray',
-                width: 230,
-                height: 260,
-                marginRight: 10,
+                color: 'black',
+                fontSize: 18,
+                padding: 10,
               }}>
-              {event && (
-                <Image
-                  source={{uri: event.uri2}}
-                  style={{
-                    position: 'absolute',
-                    top: 7,
-                    width: 36,
-                    height: 36,
-                    zIndex: 999,
-                    right : 7,
-                    borderRadius: 100,
-                  }}
-                />
-              )}
-              {event && (
-                <Image
-                  source={require('../assets/beach.png')}
-                  style={{
-                    position: 'absolute',
-                    top: 7,
-                    width: 25,
-                    height: 25,
-                    zIndex: 999,
-                    left: 7,
-                    borderRadius: 100,
-                  }}
-                />
-              )}
-              {event.uri && (
-                <Image
-                  source={{uri: event.uri}}
-                  style={{
-                    width: 230,
-                    height: 138,
-                    padding: 10,
-                    objectFit: 'cover',
-                  }}
-                />
-              )}
-              <View style={{padding: 5}}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    gap: 3,
-                    alignItems: 'center',
-                    height: 38,
-                  }}>
+              Upcoming Events in {userData && userData.Location}
+            </Text>
+          </View>
+          <ScrollView horizontal style={{margin: 10}}>
+            {events.map(event => (
+              <View
+                key={event.id}
+                style={{
+                  borderWidth: 0.3,
+                  borderColor: 'gray',
+                  width: 230,
+                  height: 260,
+                  marginRight: 10,
+                }}>
+                {event && (
                   <Image
-                    source={require('../assets/title.png')}
-                    style={{width: 16, height: 16, alignItems: 'center'}}
-                  />
-                  <Text
+                    source={{uri: event.uri2}}
                     style={{
-                      color: 'black',
-                      fontWeight: 'bold',
-                      fontSize: 13,
-                      width: 200,
-                    }}>
-                    {event.Title}
-                  </Text>
-                </View>
-                <View
-                  style={{flexDirection: 'row', gap: 50, alignItems: 'center'}}>
-                  <View style={{flexDirection: 'row', marginTop: 7, gap: 7}}>
-                    <Image
-                      source={require('../assets/date.png')}
-                      style={{width: 16, height: 16}}
-                    />
-                    <Text style={{color: 'black', fontSize: 12}}>
-                      {event.Date}
-                    </Text>
-                  </View>
-                  <View style={{flexDirection: 'row', marginTop: 7, gap: 7}}>
-                    <Image
-                      source={require('../assets/time.png')}
-                      style={{width: 16, height: 16}}
-                    />
-                    <Text style={{color: 'black', fontSize: 12}}>
-                      {event.Time}
-                    </Text>
-                  </View>
-                </View>
-                <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                      position: 'absolute',
+                      top: 7,
+                      width: 36,
+                      height: 36,
+                      zIndex: 999,
+                      right: 7,
+                      borderRadius: 100,
+                    }}
+                  />
+                )}
+                {event && (
+                  <Image
+                    source={require('../assets/beach.png')}
+                    style={{
+                      position: 'absolute',
+                      top: 7,
+                      width: 25,
+                      height: 25,
+                      zIndex: 999,
+                      left: 7,
+                      borderRadius: 100,
+                    }}
+                  />
+                )}
+                {event.uri && (
+                  <Image
+                    source={{uri: event.uri}}
+                    style={{
+                      width: 230,
+                      height: 138,
+                      padding: 10,
+                      objectFit: 'cover',
+                    }}
+                  />
+                )}
+                <View style={{padding: 5}}>
                   <View
                     style={{
                       flexDirection: 'row',
-                      marginTop: 7,
-                      gap: 7,
-                      width: 115,
+                      gap: 3,
+                      alignItems: 'center',
+                      height: 38,
                     }}>
                     <Image
-                      source={require('../assets/location.png')}
-                      style={{width: 16, height: 16}}
+                      source={require('../assets/title.png')}
+                      style={{width: 16, height: 16, alignItems: 'center'}}
                     />
-                    <Text style={{color: 'black', fontSize: 12}}>
-                      {event.City}
+                    <Text
+                      style={{
+                        color: 'black',
+                        fontWeight: 'bold',
+                        fontSize: 13,
+                        width: 200,
+                      }}>
+                      {event.Title}
                     </Text>
                   </View>
-                  <TouchableOpacity
+                  <View
                     style={{
-                      width: 100,
-                      color: 'white',
-                      backgroundColor: 'black',
+                      flexDirection: 'row',
+                      gap: 50,
                       alignItems: 'center',
-                      height: 30,
-                      paddingTop: 5,
-                      marginTop: 15,
-                      marginRight: 5,
-                    }}
-                    onPress={() =>
-                      props.navigation.navigate('EventDetails', {id: event.id})
-                    }>
-                    <Text style={{textAlign: 'center', fontWeight: 'bold'}}>
-                      Check Details
-                    </Text>
-                  </TouchableOpacity>
+                    }}>
+                    <View style={{flexDirection: 'row', marginTop: 7, gap: 7}}>
+                      <Image
+                        source={require('../assets/date.png')}
+                        style={{width: 16, height: 16}}
+                      />
+                      <Text style={{color: 'black', fontSize: 12}}>
+                        {event.Date}
+                      </Text>
+                    </View>
+                    <View style={{flexDirection: 'row', marginTop: 7, gap: 7}}>
+                      <Image
+                        source={require('../assets/time.png')}
+                        style={{width: 16, height: 16}}
+                      />
+                      <Text style={{color: 'black', fontSize: 12}}>
+                        {event.Time}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        marginTop: 7,
+                        gap: 7,
+                        width: 115,
+                      }}>
+                      <Image
+                        source={require('../assets/location.png')}
+                        style={{width: 16, height: 16}}
+                      />
+                      <Text style={{color: 'black', fontSize: 12}}>
+                        {event.City}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={{
+                        width: 100,
+                        color: 'white',
+                        backgroundColor: 'black',
+                        alignItems: 'center',
+                        height: 30,
+                        paddingTop: 5,
+                        marginTop: 15,
+                        marginRight: 5,
+                      }}
+                      onPress={() =>
+                        props.navigation.navigate('EventDetails', {
+                          id: event.id,
+                        })
+                      }>
+                      <Text style={{textAlign: 'center', fontWeight: 'bold'}}>
+                        Check Details
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
-            </View>
-          ))}
+            ))}
+          </ScrollView>
         </ScrollView>
       </ScrollView>
       <BottomNavigation />

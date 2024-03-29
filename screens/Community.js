@@ -26,12 +26,15 @@ const Community = props => {
   const [search, setSearch] = useState('');
   const [searcherr, showSearchErr] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [menu , showMenu] = useState(false);
+  const [menu, showMenu] = useState(false);
 
   const getPosts = async () => {
     try {
       setUploading(false);
-      const postsSnapshot = await firestore().collection('Posts').get();
+      const postsSnapshot = await firestore()
+        .collection('Posts')
+        .orderBy('time', 'desc')
+        .get();
       const postsData = [];
       await Promise.all(
         postsSnapshot.docs.map(async doc => {
@@ -99,7 +102,7 @@ const Community = props => {
         showSearchErr(false);
         getPosts();
         setSearch('');
-        showMenu(false)
+        showMenu(false);
       });
       return unsubscribe;
     }, []),
@@ -157,8 +160,8 @@ const Community = props => {
   //menu
   const handleMenu = () => {
     menu === true ? showMenu(false) : showMenu(true);
-  }
-  
+  };
+
   return (
     <View style={styles.container}>
       <Text
@@ -313,7 +316,7 @@ const Community = props => {
                     flexDirection: 'row',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    gap : 110,
+                    gap: 110,
                   }}>
                   <View>
                     <Text style={{color: 'black', fontSize: 18}}>

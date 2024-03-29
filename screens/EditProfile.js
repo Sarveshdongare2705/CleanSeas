@@ -25,7 +25,7 @@ const EditProfile = props => {
   const [userData, setUserData] = useState(null);
   const [updatedName, setUpdatedName] = useState('');
   const [showErr, setShowErr] = useState(false);
-  const [selectedRole, setSelectedRole] = useState('');
+  const [Location, setLocation] = useState('');
 
   const fetchUserData = async user => {
     if (user) {
@@ -85,11 +85,16 @@ const EditProfile = props => {
           updatedName !== ''
             ? await userRef.update({
                 Username: updatedName,
-                role: selectedRole,
               })
             : await userRef.update({
                 Username: userData.Username,
-                role: selectedRole,
+              });
+          Location !== ''
+            ? await userRef.update({
+                Location : Location,
+              })
+            : await userRef.update({
+                Location : userData.Location,
               });
           console.log('Username updated');
         }
@@ -194,12 +199,12 @@ const EditProfile = props => {
               />
               <TextInput
                 style={styles.input}
-                placeholder={`Do you want to Post Drives and Events(Yes)`}
+                placeholder={`Enter your Location`}
                 placeholderTextColor="gray"
-                value={selectedRole}
+                value={Location}
                 maxLength={20}
                 onChangeText={text => {
-                  setSelectedRole(text);
+                  setLocation(text);
                 }}
               />
               <TextInput
