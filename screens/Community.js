@@ -14,10 +14,11 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 import BottomNavigation from '../components/BottomNavigation';
-import {useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import Loader from '../components/Loader';
 
 const Community = props => {
+  const navigation = useNavigation();
   const [currentUser, setCurrentUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [usernames, setUsernames] = useState({});
@@ -286,12 +287,7 @@ const Community = props => {
                 }}>
                 {userimages && userimages[post.Useremail] !== null ? (
                   <TouchableOpacity
-                    onPress={() =>
-                      props.navigation.navigate('Image', {
-                        uri: userimages[post.Useremail],
-                        path: 'Community',
-                      })
-                    }>
+                  onPress={() => navigation.navigate('Profile' , {email : post.Useremail})}>
                     <Image
                       source={{
                         uri:

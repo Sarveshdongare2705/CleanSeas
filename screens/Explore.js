@@ -8,18 +8,25 @@ import {
   TouchableOpacity,
   View,
   RefreshControl,
+  TextInput,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 import BottomNavigation from '../components/BottomNavigation';
+import {useNavigation} from '@react-navigation/native';
 
 const Explore = props => {
+  const navigation = useNavigation();
   const [currentUser, setCurrentUser] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [events, setEvents] = useState([]);
+  const [orgevents, setOrgEvents] = useState([]);
   const [participatedEvents, setParticiatedEvents] = useState([]);
   const [orgs, setOrgs] = useState([]);
+  const [search, setSearch] = useState('');
+  const [searcherr, showSearchErr] = useState(false);
+  const [searching, setSearching] = useState(false);
   const getEvents = async () => {
     try {
       const participationsSnapshot = await firestore()
@@ -54,11 +61,46 @@ const Explore = props => {
       console.error(err);
     }
   };
-  const getParticipatedEvents = async () => {
+  const getOrgEvents = async () => {
+    try {
+      const participationsSnapshot = await firestore()
+        .collection('Events')
+        .where('Useremail', '==', currentUser.email)
+        .get();
+      const eventsData = [];
+      await Promise.all(
+        participationsSnapshot.docs.map(async doc => {
+          const eventData = {id: doc.id, ...doc.data()};
+          const userSnapshot = await firestore()
+            .collection('Users')
+            .where('Useremail', '==', eventData.Useremail)
+            .get();
+          if (!userSnapshot.empty) {
+            const userData = userSnapshot.docs[0].data();
+            const filename = `${`Event${eventData.id}`}`;
+            try {
+              const url = await storage().ref(filename).getDownloadURL();
+              eventData.uri = url;
+              const file2 = `${eventData.Useremail}`;
+              const url2 = await storage().ref(file2).getDownloadURL();
+              eventData.uri2 = url2;
+            } catch (error) {
+              eventData.uri = null;
+            }
+          }
+          eventsData.push(eventData);
+        }),
+      );
+      setOrgEvents(eventsData);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const getParticipatedEvents = async user => {
     try {
       const participationsSnapshot = await firestore()
         .collection('Participations')
-        .where('Useremail', '==', currentUser && currentUser.email)
+        .where('Useremail', '==', user.email)
         .get();
       const eventsData = [];
 
@@ -119,13 +161,59 @@ const Explore = props => {
       console.error(err);
     }
   };
+  const handleSearch = async searchVal => {
+    if (searchVal.trim() !== '') {
+      setSearching(true);
+      try {
+        const eventsSnapshot = await firestore()
+          .collection('Events')
+          .where('City', '==', searchVal)
+          .get();
+        const eventsData = [];
+        await Promise.all(
+          eventsSnapshot.docs.map(async doc => {
+            const eventData = {id: doc.id, ...doc.data()};
+            const userSnapshot = await firestore()
+              .collection('Users')
+              .where('Useremail', '==', eventData.Useremail)
+              .get();
+            if (!userSnapshot.empty) {
+              const userData = userSnapshot.docs[0].data();
+              const filename = `${`Event${eventData.id}`}`;
+              try {
+                const url = await storage().ref(filename).getDownloadURL();
+                eventData.uri = url;
+                const file2 = `${eventData.Useremail}`;
+                const url2 = await storage().ref(file2).getDownloadURL();
+                eventData.uri2 = url2;
+              } catch (error) {
+                eventData.uri = null;
+              }
+            }
+            eventsData.push(eventData);
+          }),
+        );
+        setEvents(eventsData);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    else{
+      setSearching(false);
+      getEvents();
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = auth().onAuthStateChanged(user => {
       if (user) {
         setCurrentUser(user);
         getEvents();
-        getParticipatedEvents();
+        getOrgEvents();
+        getParticipatedEvents(user);
+        setSearching(false);
+        setSearch('');
+        setEvents([]);
         getOrgs();
       } else {
         setCurrentUser(null);
@@ -137,6 +225,7 @@ const Explore = props => {
   const onRefresh = async () => {
     setRefreshing(true);
     await getEvents();
+    getOrgEvents();
     await getOrgs();
     await getParticipatedEvents();
     setRefreshing(false);
@@ -161,8 +250,67 @@ const Explore = props => {
           }}>
           Explore
         </Text>
+        <View style={{flexDirection: 'row', alignItems: 'center', gap: -5}}>
+          <View
+            style={{
+              marginLeft: 15,
+              width: 230,
+              height: 45,
+              flexDirection: 'row',
+              gap: 7,
+              justifyContent: 'flex-start',
+              alignItems: 'center',
+              borderWidth: 0.3,
+              borderColor: 'gray',
+              paddingLeft: 10,
+              color: 'black',
+              borderRadius: 20,
+              height: 37,
+            }}>
+            <Image
+              source={require('../assets/search.png')}
+              style={{width: 17, height: 17}}
+            />
+            <TextInput
+              placeholder={`Search for events in your city`}
+              placeholderTextColor="gray"
+              style={{
+                color: 'black',
+                borderRadius: 20,
+                width: 180,
+              }}
+              onChangeText={text => {
+                setSearch(text);
+                handleSearch(text);
+              }}
+              value={search}
+            />
+          </View>
+          <TouchableOpacity onPress={() => handleSearch(search)}>
+            <View style={{position: 'relative'}}>
+              <Text
+                style={{
+                  color: 'white',
+                  fontWeight: 'bold',
+                  padding: 9,
+                  width: 100,
+                  height: 36,
+                  margin: 10,
+                  backgroundColor: 'white',
+                  textAlign: 'center',
+                  color: '#57DDFB',
+                  borderRadius: 20,
+                  fontSize: 13,
+                  borderWidth: 0.5,
+                  borderColor: '#57DDFB',
+                }}>
+                Search
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
         <ScrollView
-          style={{height: 620}}
+          style={{height: 570}}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }>
@@ -172,8 +320,9 @@ const Explore = props => {
                 color: 'black',
                 fontSize: 18,
                 padding: 10,
+                marginTop : -10
               }}>
-              {events && 'All Events'}
+              {!searching ?  'All Events' : 'Search Results'}
             </Text>
           </View>
           <ScrollView horizontal style={{margin: 10}}>
@@ -434,23 +583,26 @@ const Explore = props => {
               </View>
             ))}
           </ScrollView>
-          <View>
-            <Text
-              style={{
-                color: 'black',
-                fontSize: 18,
-                padding: 10,
-                marginBottom: -20,
-              }}>
-              Organizations
-            </Text>
-          </View>
+          {orgs && (
+            <View>
+              <Text
+                style={{
+                  color: 'black',
+                  fontSize: 18,
+                  padding: 10,
+                  marginBottom: -20,
+                  paddingBottom: 20,
+                }}>
+                Organizations
+              </Text>
+            </View>
+          )}
           <View style={{paddingTop: 7}}>
             {orgs.map(org => (
               <TouchableOpacity
                 key={org.id}
                 onPress={() => {
-                  props.navigation.navigate('Chat', {email: org.Useremail , senderEmail : currentUser && currentUser.email});
+                  navigation.navigate('Profile', {email: org.Useremail});
                 }}>
                 <View
                   key={org.id}
@@ -502,7 +654,7 @@ const Explore = props => {
                             fontSize: 12,
                             width: 270,
                           }}>
-                          {org.Useremail}
+                          {'Check our profile'}
                         </Text>
                       </View>
                     </View>

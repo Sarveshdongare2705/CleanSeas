@@ -15,9 +15,10 @@ import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import storage from '@react-native-firebase/storage';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
-import {useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 const EditProfile = props => {
+  const navigation = useNavigation();
   const [image, setImage] = useState(null);
   const [profileImg, setProfileImg] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -116,7 +117,7 @@ const EditProfile = props => {
         console.log('Image uploaded successfully');
         setImage(null);
         setUploading(false);
-        props.navigation.navigate('Profile');
+        navigation.navigate('Profile' , {email : currentUser.email})
       } catch (err) {
         console.error('Error uploading image:', err);
         setUploading(false);
@@ -131,7 +132,7 @@ const EditProfile = props => {
       ) : (
         <View style={styles.container}>
           <TouchableOpacity
-            onPress={() => props.navigation.navigate('Profile')}>
+            onPress={() => props.navigation.navigate('Profile' , {email : currentUser.email})}>
             <Text
               style={{
                 fontWeight: '100',

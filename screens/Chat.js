@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   RefreshControl,
+  KeyboardAvoidingView,
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
@@ -20,14 +21,15 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 const Chat = ({route}) => {
   const email1 = route.params.email;
   const email2 = route.params.senderEmail;
+  const navigation = useNavigation();
   const [currentUser, setCurrentUser] = useState(null);
   const [orgDetails, setOrgDetails] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
-  const navigation = useNavigation();
   const [profileImg, setProfileImg] = useState(null);
   const [inputHeight, setInputHeight] = useState(100);
   const [refreshing, setRefreshing] = useState(false);
+  const [showButton, setShowButton] = useState(true);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -97,6 +99,7 @@ const Chat = ({route}) => {
         setCurrentUser(user);
         fetchOrgDetails();
         fetchMessages();
+        setShowButton(true);
       });
 
       return unsubscribe;
@@ -104,23 +107,25 @@ const Chat = ({route}) => {
   );
 
   const sendMessage = async () => {
-    try {
-      const newMessageRef = await firestore().collection('messages').add({
-        orgEmail: route.params.email,
-        senderEmail: currentUser.email,
-        message: inputMessage,
-        time: firestore.Timestamp.now(),
-      });
-      const newMessage = {
-        orgEmail: route.params.email,
-        senderEmail: currentUser.email,
-        message: inputMessage,
-        time: firestore.FieldValue.serverTimestamp(),
-      };
-      fetchMessages();
-      setInputMessage('');
-    } catch (error) {
-      console.error('Error sending message: ', error);
+    if (inputMessage !== '') {
+      try {
+        setInputMessage('');
+        const newMessageRef = await firestore().collection('messages').add({
+          orgEmail: route.params.email,
+          senderEmail: currentUser.email,
+          message: inputMessage,
+          time: firestore.Timestamp.now(),
+        });
+        const newMessage = {
+          orgEmail: route.params.email,
+          senderEmail: currentUser.email,
+          message: inputMessage,
+          time: firestore.FieldValue.serverTimestamp(),
+        };
+        fetchMessages();
+      } catch (error) {
+        console.error('Error sending message: ', error);
+      }
     }
   };
 
@@ -164,8 +169,69 @@ const Chat = ({route}) => {
           )}
         </View>
         <View style={{height: 600}}>
+          <View style={{flexDirection: 'row', alignItems: 'center', gap: -5}}>
+            <View
+              style={{
+                marginLeft: 15,
+                width: 230,
+                height: 45,
+                flexDirection: 'row',
+                gap: 7,
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                borderWidth: 0.3,
+                borderColor: 'gray',
+                paddingLeft: 10,
+                color: 'black',
+                borderRadius: 20,
+                height: 37,
+              }}>
+              <Image
+                source={require('../assets/msg.png')}
+                style={{width: 17, height: 17}}
+              />
+              <TextInput
+                placeholder={`Enter message`}
+                placeholderTextColor="gray"
+                style={{
+                  color: 'black',
+                  borderRadius: 20,
+                  width: 180,
+                  textAlign: 'flex-start',
+                }}
+                onChangeText={text => {
+                  setInputMessage(text);
+                }}
+                value={inputMessage}
+              />
+            </View>
+            {showButton && (
+              <TouchableOpacity onPress={sendMessage}>
+                <View style={{position: 'relative'}}>
+                  <Text
+                    style={{
+                      color: 'white',
+                      fontWeight: 'bold',
+                      padding: 9,
+                      width: 100,
+                      height: 36,
+                      margin: 10,
+                      backgroundColor: 'white',
+                      textAlign: 'center',
+                      color: '#57DDFB',
+                      borderRadius: 20,
+                      fontSize: 13,
+                      borderWidth: 0.5,
+                      borderColor: '#57DDFB',
+                    }}>
+                    Send
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          </View>
           <ScrollView style={{width: '100%'}}>
-            <View style={{color: 'black', padding: 20, height: 420}}>
+            <View style={{color: 'black', padding: 20, height: 450}}>
               <ScrollView
                 refreshControl={
                   <RefreshControl
@@ -176,16 +242,24 @@ const Chat = ({route}) => {
                 {messages.map(msg =>
                   msg.senderEmail === msg.orgEmail ? (
                     <View
+                      key={msg.id}
                       style={{
                         flexDirection: 'row',
                         alignItems: 'flex-start',
                         gap: 12,
                         marginBottom: 15,
                       }}>
-                      <Image
-                        source={{uri: msg.uri}}
-                        style={{width: 40, height: 40, borderRadius: 100}}
-                      />
+                      <TouchableOpacity
+                        onPress={() =>
+                          navigation.navigate('Profile', {
+                            email: msg.senderEmail,
+                          })
+                        }>
+                        <Image
+                          source={{uri: msg.uri}}
+                          style={{width: 40, height: 40, borderRadius: 100}}
+                        />
+                      </TouchableOpacity>
                       <View style={{flexDirection: 'column', width: 260}}>
                         <View
                           style={{
@@ -237,10 +311,17 @@ const Chat = ({route}) => {
                         gap: 12,
                         marginBottom: 12,
                       }}>
-                      <Image
-                        source={{uri: msg.uri}}
-                        style={{width: 40, height: 40, borderRadius: 100}}
-                      />
+                      <TouchableOpacity
+                        onPress={() =>
+                          navigation.navigate('Profile', {
+                            email: msg.senderEmail,
+                          })
+                        }>
+                        <Image
+                          source={{uri: msg.uri}}
+                          style={{width: 40, height: 40, borderRadius: 100}}
+                        />
+                      </TouchableOpacity>
                       <View style={{flexDirection: 'column', width: 260}}>
                         <View
                           style={{
@@ -276,65 +357,6 @@ const Chat = ({route}) => {
                   ),
                 )}
               </ScrollView>
-            </View>
-            <View style={{flexDirection: 'row', alignItems: 'center', gap: -5}}>
-              <View
-                style={{
-                  marginLeft: 15,
-                  width: 230,
-                  height: 45,
-                  flexDirection: 'row',
-                  gap: 7,
-                  justifyContent: 'flex-start',
-                  alignItems: 'center',
-                  borderWidth: 0.3,
-                  borderColor: 'gray',
-                  paddingLeft: 10,
-                  color: 'black',
-                  borderRadius: 20,
-                  height: 37,
-                }}>
-                <Image
-                  source={require('../assets/msg.png')}
-                  style={{width: 17, height: 17}}
-                />
-                <TextInput
-                  placeholder={`Enter message`}
-                  placeholderTextColor="gray"
-                  style={{
-                    color: 'black',
-                    borderRadius: 20,
-                    width: 180,
-                    textAlign: 'flex-start',
-                  }}
-                  onChangeText={text => {
-                    setInputMessage(text);
-                  }}
-                  value={inputMessage}
-                />
-              </View>
-              <TouchableOpacity onPress={sendMessage}>
-                <View style={{position: 'relative'}}>
-                  <Text
-                    style={{
-                      color: 'white',
-                      fontWeight: 'bold',
-                      padding: 9,
-                      width: 100,
-                      height: 36,
-                      margin: 10,
-                      backgroundColor: 'white',
-                      textAlign: 'center',
-                      color: '#57DDFB',
-                      borderRadius: 20,
-                      fontSize: 13,
-                      borderWidth: 0.5,
-                      borderColor: '#57DDFB',
-                    }}>
-                    Send
-                  </Text>
-                </View>
-              </TouchableOpacity>
             </View>
           </ScrollView>
         </View>

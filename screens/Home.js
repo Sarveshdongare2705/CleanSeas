@@ -26,45 +26,63 @@ const Home = props => {
   const [events, setEvents] = useState([]);
   const [eventUser, setEventUser] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [loc , setLoc] = useState('');
+  const [loc, setLoc] = useState('');
 
-  const getEvents = async () => {
-    if (loc) {
-      try {
-        const eventsSnapshot = await firestore()
-          .collection('Events')
-          .where('City', '==', loc)
+  const getEvents = async user => {
+      if(loc){
+        try {
+          const userSnapShot = await firestore()
+          .collection('Users')
+          .where('Useremail', '==', user.email)
           .get();
-        const eventsData = [];
-        await Promise.all(
-          eventsSnapshot.docs.map(async doc => {
-            const eventData = {id: doc.id, ...doc.data()};
-            const userSnapshot = await firestore()
-              .collection('Users')
-              .where('Useremail', '==', eventData.Useremail)
-              .get();
-            if (!userSnapshot.empty) {
-              const userData = userSnapshot.docs[0].data();
-              const filename = `${`Event${eventData.id}`}`;
-              try {
-                const url = await storage().ref(filename).getDownloadURL();
-                eventData.uri = url;
-                const file2 = `${eventData.Useremail}`;
-                const url2 = await storage().ref(file2).getDownloadURL();
-                eventData.uri2 = url2;
-              } catch (error) {
-                eventData.uri = null;
+        if (!userSnapShot.empty) {
+          const userLoc = userSnapShot.docs[0].data().Location;
+          const currentDate = new Date(); 
+          const eventsSnapshot = await firestore()
+            .collection('Events')
+            .where('City', '==', userLoc)
+            .get();
+          const eventsData = [];
+          await Promise.all(
+            eventsSnapshot.docs.map(async doc => {
+              const eventData = {id: doc.id, ...doc.data()};
+              const eventDateParts = eventData.Date.split('/');
+              const eventDate = new Date(
+                eventDateParts[2], 
+                eventDateParts[1] - 1, 
+                eventDateParts[0], 
+              );
+              if (eventDate > currentDate) {
+                const userSnapshot = await firestore()
+                  .collection('Users')
+                  .where('Useremail', '==', eventData.Useremail)
+                  .get();
+                if (!userSnapshot.empty) {
+                  const userData = userSnapshot.docs[0].data();
+                  const filename = `${`Event${eventData.id}`}`;
+                  try {
+                    const url = await storage().ref(filename).getDownloadURL();
+                    eventData.uri = url;
+                    const file2 = `${eventData.Useremail}`;
+                    const url2 = await storage().ref(file2).getDownloadURL();
+                    eventData.uri2 = url2;
+                  } catch (error) {
+                    eventData.uri = null;
+                  }
+                }
+                eventsData.push(eventData);
               }
-            }
-            eventsData.push(eventData);
-          }),
-        );
-        setEvents(eventsData);
-      } catch (err) {
-        console.error(err);
+            }),
+          );
+          setEvents(eventsData);}
+        } catch (err) {
+          console.error(err);
+        }
       }
-    }
-  };
+        else{
+          setEvents([]);
+        }
+      };
 
   const fetchUserData = async user => {
     if (user) {
@@ -75,7 +93,7 @@ const Home = props => {
       if (!userSnapShot.empty) {
         const userData = userSnapShot.docs[0].data();
         setUserData(userData);
-        setLoc(userData.Location)
+        setLoc(userData.Location);
         const filename = `${userData.Useremail}`;
         try {
           url = await storage().ref(filename).getDownloadURL();
@@ -140,7 +158,7 @@ const Home = props => {
       const unsubscribe = auth().onAuthStateChanged(user => {
         setCurrentUser(user);
         fetchUserData(user);
-        getEvents();
+        getEvents(user);
         requestLocationPermission();
       });
 
@@ -150,7 +168,7 @@ const Home = props => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await getEvents();
+    await getEvents(currentUser);
     setRefreshing(false);
   };
 

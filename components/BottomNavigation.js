@@ -75,7 +75,7 @@ const BottomNavigation = () => {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => navigation.navigate('Profile')}>
+          onPress={() => navigation.navigate('Profile' , {email : userData.Useremail})}>
           <Image
             source={require('../assets/profile.png')}
             style={{width: 25, height: 25}}
