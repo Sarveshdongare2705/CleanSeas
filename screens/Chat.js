@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useState, useEffect, useCallback, useRef} from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
   StyleSheet,
   RefreshControl,
   KeyboardAvoidingView,
+  Keyboard,
+  StatusBar,
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
@@ -30,6 +32,14 @@ const Chat = ({route}) => {
   const [inputHeight, setInputHeight] = useState(100);
   const [refreshing, setRefreshing] = useState(false);
   const [showButton, setShowButton] = useState(true);
+
+  const scrollViewRef = useRef();
+
+  useEffect(() => {
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollToEnd({animated: true});
+    }
+  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -64,30 +74,36 @@ const Chat = ({route}) => {
   };
   const fetchMessages = async () => {
     try {
-      const messagesSnapshot = await firestore()
+      const messagesRef = firestore()
         .collection('messages')
         .where('orgEmail', '==', email1)
-        .orderBy('time', 'desc')
-        .get();
+        .orderBy('time', 'desc');
 
-      const messagesData = [];
-      await Promise.all(
-        messagesSnapshot.docs.map(async doc => {
-          const messageData = {id: doc.id, ...doc.data()};
-          const userSnapshot = await firestore()
-            .collection('Users')
-            .where('Useremail', '==', messageData.senderEmail)
-            .get();
-          const userData = userSnapshot.docs[0].data();
-          messageData.senderName = userData.Username;
-          const filename = `${messageData.senderEmail}`;
-          const img = await storage().ref(filename).getDownloadURL();
-          messageData.uri = img;
-          messagesData.push(messageData);
-        }),
-      );
+      const unsubscribe = messagesRef.onSnapshot(async snapshot => {
+        const messagesData = await Promise.all(
+          snapshot.docs.map(async doc => {
+            const messageData = {id: doc.id, ...doc.data()};
+            const userSnapshot = await firestore()
+              .collection('Users')
+              .where('Useremail', '==', messageData.senderEmail)
+              .get();
+            const userData = userSnapshot.docs[0].data();
+            messageData.senderName = userData.Username;
+            const filename = `${messageData.senderEmail}`;
+            try {
+              const img = await storage().ref(filename).getDownloadURL();
+              messageData.uri = img;
+            } catch (error) {
+              console.error('Error fetching image: ', error);
+            }
+            return messageData;
+          }),
+        );
 
-      setMessages(messagesData);
+        setMessages(messagesData);
+      });
+
+      return unsubscribe;
     } catch (error) {
       console.error('Error fetching messages: ', error);
     }
@@ -129,138 +145,133 @@ const Chat = ({route}) => {
     }
   };
 
+  const handleDelete = async messageId => {
+    try {
+      await firestore().collection('messages').doc(messageId).delete();
+      setMessages(prevMessages =>
+        prevMessages.filter(msg => msg.id !== messageId),
+      );
+      console.log('Delete completed');
+    } catch (error) {
+      console.error('Error deleting message: ', error);
+    }
+  };
+
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => {
+        setIsKeyboardOpen(true);
+      },
+    );
+
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setIsKeyboardOpen(false);
+      },
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
+
   return (
     <View
       style={{
         flex: 1,
         justifyContent: 'space-between',
         backgroundColor: 'white',
-        paddingTop: 30,
+        height: '100%',
       }}>
-      <View style={{height: 500}}>
+      <StatusBar backgroundColor="#0077be" barStyle="dark-content" />
+      <View style={{height: isKeyboardOpen ? '86%' : '94%'}}>
         <View
           style={{
-            flexDirection: 'column',
-            justifyContent: 'center',
+            flexDirection: 'row',
+            justifyContent: 'flex-start',
             alignItems: 'center',
+            paddingLeft: 10,
+            borderBottomWidth: 0.3,
+            borderBottomColor: 'lightgray',
+            backgroundColor: '#0077be',
           }}>
           {profileImg !== null && (
             <Image
               source={{uri: profileImg}}
-              style={{width: 90, height: 90, borderRadius: 100}}
+              style={{width: 40, height: 40, borderRadius: 100}}
             />
           )}
           {orgDetails && (
             <View
               style={{
                 padding: 10,
-                borderBottomWidth: 0.2,
-                borderBottomColor: 'lightgray',
                 width: '100%',
-                alignItems: 'center',
               }}>
-              <Text style={{fontSize: 20, color: 'black'}}>
+              <Text style={{fontSize: 18, color: 'white'}}>
                 {orgDetails.Username}
               </Text>
-              <Text style={{fontSize: 12, color: 'gray'}}>
+              <Text style={{fontSize: 10, color: 'white'}}>
                 {orgDetails.Role}
               </Text>
             </View>
           )}
         </View>
-        <View style={{height: 600}}>
-          <View style={{flexDirection: 'row', alignItems: 'center', gap: -5}}>
-            <View
-              style={{
-                marginLeft: 15,
-                width: 230,
-                height: 45,
-                flexDirection: 'row',
-                gap: 7,
-                justifyContent: 'flex-start',
-                alignItems: 'center',
-                borderWidth: 0.3,
-                borderColor: 'gray',
-                paddingLeft: 10,
-                color: 'black',
-                borderRadius: 20,
-                height: 37,
-              }}>
-              <Image
-                source={require('../assets/msg.png')}
-                style={{width: 17, height: 17}}
-              />
-              <TextInput
-                placeholder={`Enter message`}
-                placeholderTextColor="gray"
-                style={{
-                  color: 'black',
-                  borderRadius: 20,
-                  width: 180,
-                  textAlign: 'flex-start',
-                }}
-                onChangeText={text => {
-                  setInputMessage(text);
-                }}
-                value={inputMessage}
-              />
-            </View>
-            {showButton && (
-              <TouchableOpacity onPress={sendMessage}>
-                <View style={{position: 'relative'}}>
-                  <Text
+        <View style={{height: '92%'}}>
+          <View style={{color: 'black', padding: 10}}>
+            <ScrollView
+              ref={scrollViewRef}
+              onContentSizeChange={() =>
+                scrollViewRef.current.scrollToEnd({animated: true})
+              }
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }>
+              <View style={{flexDirection: 'column-reverse'}}>
+                {messages.map(msg => (
+                  <View
+                    key={msg.id}
                     style={{
-                      color: 'white',
-                      fontWeight: 'bold',
-                      padding: 9,
-                      width: 100,
-                      height: 36,
-                      margin: 10,
-                      backgroundColor: 'white',
-                      textAlign: 'center',
-                      color: '#57DDFB',
-                      borderRadius: 20,
-                      fontSize: 13,
-                      borderWidth: 0.5,
-                      borderColor: '#57DDFB',
+                      flexDirection: 'row',
+                      alignItems: 'flex-start',
+                      gap: 10,
+                      marginBottom: 15,
                     }}>
-                    Send
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            )}
-          </View>
-          <ScrollView style={{width: '100%'}}>
-            <View style={{color: 'black', padding: 20, height: 450}}>
-              <ScrollView
-                refreshControl={
-                  <RefreshControl
-                    refreshing={refreshing}
-                    onRefresh={onRefresh}
-                  />
-                }>
-                {messages.map(msg =>
-                  msg.senderEmail === msg.orgEmail ? (
-                    <View
-                      key={msg.id}
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'flex-start',
-                        gap: 12,
-                        marginBottom: 15,
-                      }}>
-                      <TouchableOpacity
-                        onPress={() =>
-                          navigation.navigate('Profile', {
-                            email: msg.senderEmail,
-                          })
-                        }>
+                    <TouchableOpacity
+                      onPress={() =>
+                        navigation.navigate('Profile', {
+                          email: msg.senderEmail,
+                        })
+                      }>
+                      {currentUser.email !== msg.senderEmail && (
                         <Image
                           source={{uri: msg.uri}}
-                          style={{width: 40, height: 40, borderRadius: 100}}
+                          style={{
+                            width: 27,
+                            height: 27,
+                            borderRadius: 100,
+                            marginTop: 0,
+                          }}
                         />
-                      </TouchableOpacity>
-                      <View style={{flexDirection: 'column', width: 260}}>
+                      )}
+                    </TouchableOpacity>
+                    {currentUser.email !== msg.senderEmail ? (
+                      <View
+                        style={{
+                          flexDirection: 'column',
+                          width: '89%',
+                          borderWidth: 0.5,
+                          padding: 9,
+                          borderColor: 'lightgray',
+                          borderTopLeftRadius: 0,
+                          borderTopRightRadius: 20,
+                          borderBottomRightRadius: 20,
+                          borderBottomLeftRadius: 20,
+                        }}>
                         <View
                           style={{
                             flexDirection: 'row',
@@ -269,99 +280,247 @@ const Chat = ({route}) => {
                           }}>
                           <View
                             style={{
-                              flexDirection: 'row',
-                              gap: 3,
-                              alignItems: 'center',
+                              flexDirection: 'column',
+                              gap: 1,
+                              alignItems: 'flex-start',
                             }}>
+                            <View
+                              style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: email1 === msg.senderEmail ? 215 : 235,
+                              }}>
+                              <View
+                                style={{
+                                  flexDirection: 'row',
+                                  gap: 5,
+                                  alignItems: 'center',
+                                }}>
+                                <Text
+                                  style={{
+                                    color: '#0077be',
+                                    fontSize: 15,
+                                    flexDirection: 'row',
+                                    gap: 20,
+                                    fontWeight: '400',
+                                  }}>
+                                  {currentUser &&
+                                  currentUser.email === msg.senderEmail
+                                    ? 'You'
+                                    : msg.senderName}
+                                </Text>
+                                {email1 === msg.senderEmail && (
+                                  <Image
+                                    source={require('../assets/beach.png')}
+                                    style={{
+                                      width: 17,
+                                      height: 17,
+                                      borderRadius: 100,
+                                    }}
+                                  />
+                                )}
+                              </View>
+                              {currentUser.email === msg.senderEmail && (
+                                <TouchableOpacity
+                                  onPress={() => handleDelete(msg.id)}>
+                                  <Image
+                                    source={require('../assets/delete.png')}
+                                    style={{
+                                      width: 17,
+                                      height: 17,
+                                      borderRadius: 100,
+                                    }}
+                                  />
+                                </TouchableOpacity>
+                              )}
+                            </View>
                             <Text
                               style={{
-                                color: '#57DDFB',
-                                fontSize: 15,
+                                color: 'gray',
+                                fontSize: 8,
                                 flexDirection: 'row',
                                 gap: 20,
-                                fontWeight: '400',
                               }}>
-                              {msg.senderName}
+                              {msg.time.toDate().toLocaleString()}
                             </Text>
-                            <Image
-                              source={require('../assets/verified.png')}
-                              style={{width: 16, height: 16, borderRadius: 100}}
-                            />
                           </View>
+                        </View>
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: 7,
+                          }}>
                           <Text
                             style={{
-                              color: 'gray',
-                              fontSize: 7,
-                              flexDirection: 'row',
-                              gap: 20,
+                              color: 'black',
+                              fontSize: 14,
+                              width: 240,
+                              marginTop: 10,
                             }}>
-                            {msg.time.toDate().toLocaleString()}
+                            {msg.message}
                           </Text>
                         </View>
-                        <Text style={{color: 'black', fontSize: 13}}>
-                          {msg.message}
-                        </Text>
                       </View>
-                    </View>
-                  ) : (
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'flex-start',
-                        gap: 12,
-                        marginBottom: 12,
-                      }}>
-                      <TouchableOpacity
-                        onPress={() =>
-                          navigation.navigate('Profile', {
-                            email: msg.senderEmail,
-                          })
-                        }>
-                        <Image
-                          source={{uri: msg.uri}}
-                          style={{width: 40, height: 40, borderRadius: 100}}
-                        />
-                      </TouchableOpacity>
-                      <View style={{flexDirection: 'column', width: 260}}>
+                    ) : (
+                      <View
+                        style={{
+                          flexDirection: 'column',
+                          width: '89%',
+                          borderWidth: 0.5,
+                          padding: 9,
+                          borderColor: 'lightgray',
+                          borderTopLeftRadius: 0,
+                          borderTopRightRadius: 20,
+                          borderBottomRightRadius: 20,
+                          borderBottomLeftRadius: 20,
+                        }}>
                         <View
                           style={{
                             flexDirection: 'row',
                             justifyContent: 'space-between',
                             alignItems: 'center',
                           }}>
+                          <View
+                            style={{
+                              flexDirection: 'column',
+                              gap: 1,
+                              alignItems: 'flex-start',
+                            }}>
+                            <View
+                              style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: email1 === msg.senderEmail ? 225 : 245,
+                              }}>
+                              <View
+                                style={{
+                                  flexDirection: 'row',
+                                  gap: 5,
+                                  alignItems: 'center',
+                                }}>
+                                <Text
+                                  style={{
+                                    color: '#0077be',
+                                    fontSize: 15,
+                                    flexDirection: 'row',
+                                    gap: 20,
+                                    fontWeight: '400',
+                                  }}>
+                                  {currentUser &&
+                                  currentUser.email === msg.senderEmail
+                                    ? 'You'
+                                    : msg.senderName}
+                                </Text>
+                                {email1 === msg.senderEmail && (
+                                  <Image
+                                    source={require('../assets/beach.png')}
+                                    style={{
+                                      width: 17,
+                                      height: 17,
+                                      borderRadius: 100,
+                                    }}
+                                  />
+                                )}
+                              </View>
+                              {currentUser.email === msg.senderEmail && (
+                                <TouchableOpacity
+                                  onPress={() => handleDelete(msg.id)}>
+                                  <Image
+                                    source={require('../assets/delete.png')}
+                                    style={{
+                                      width: 12,
+                                      height: 12,
+                                      borderRadius: 100,
+                                    }}
+                                  />
+                                </TouchableOpacity>
+                              )}
+                            </View>
+                            <Text
+                              style={{
+                                color: 'gray',
+                                fontSize: 8,
+                                flexDirection: 'row',
+                                gap: 20,
+                              }}>
+                              {msg.time.toDate().toLocaleString()}
+                            </Text>
+                          </View>
+                        </View>
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: 7,
+                          }}>
                           <Text
                             style={{
-                              color: '#57DDFB',
-                              fontSize: 15,
-                              flexDirection: 'row',
-                              gap: 20,
-                              fontWeight: '400',
+                              color: 'black',
+                              fontSize: 14,
+                              width: '95%',
+                              marginTop: 10,
+                              marginLeft: 5,
                             }}>
-                            {msg.senderName}
-                          </Text>
-                          <Text
-                            style={{
-                              color: 'gray',
-                              fontSize: 7,
-                              flexDirection: 'row',
-                              gap: 20,
-                            }}>
-                            {msg.time.toDate().toLocaleString()}
+                            {msg.message}
                           </Text>
                         </View>
-                        <Text style={{color: 'black', fontSize: 13}}>
-                          {msg.message}
-                        </Text>
                       </View>
-                    </View>
-                  ),
-                )}
-              </ScrollView>
-            </View>
-          </ScrollView>
+                    )}
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
         </View>
       </View>
-      <BottomNavigation />
+      <View style={{flexDirection: 'row', alignItems: 'center'}}>
+        <View
+          style={{
+            marginLeft: 10,
+            width: '84%',
+            height: 45,
+            flexDirection: 'row',
+            gap: 7,
+            justifyContent: 'flex-start',
+            alignItems: 'center',
+            borderWidth: 0.3,
+            borderColor: 'gray',
+            paddingLeft: 10,
+            color: 'black',
+            borderRadius: 20,
+            height: 37,
+            marginBottom: 10,
+          }}>
+          <Image
+            source={require('../assets/msg.png')}
+            style={{width: 18, height: 18}}
+          />
+          <TextInput
+            placeholder={`Enter message`}
+            placeholderTextColor="gray"
+            style={{
+              color: 'black',
+              borderRadius: 20,
+              width: '90%',
+            }}
+            onChangeText={text => {
+              setInputMessage(text);
+            }}
+            value={inputMessage}
+          />
+        </View>
+        {showButton && (
+          <TouchableOpacity onPress={sendMessage}>
+            <Image
+              source={require('../assets/send.png')}
+              style={{width: 30, height: 30, marginLeft: 10, marginBottom: 10}}
+            />
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 };

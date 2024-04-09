@@ -10,6 +10,9 @@ import {
   RefreshControl,
   Alert,
   Linking,
+  Modal,
+  TextInput,
+  Button,
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
@@ -31,6 +34,12 @@ const EventDetails = ({route}) => {
   const [participated, setParticiated] = useState(false);
   const [participatedUsers, setParticipatedUsers] = useState([]);
   const [count, setCount] = useState(0);
+  const [showForm , setShowForm] = useState(false);
+
+  const handleShowForm = async() => {
+    setShowForm(!showForm)
+  }
+
   const fetchParticipatedUsers = async () => {
     console.log('Started');
     try {
@@ -238,7 +247,7 @@ const EventDetails = ({route}) => {
                 />
               </TouchableOpacity>
             </View>
-            <View style={{paddingTop : 10}}>
+            <View style={{paddingTop: 10}}>
               <ScrollView
                 refreshControl={
                   <RefreshControl
@@ -373,7 +382,11 @@ const EventDetails = ({route}) => {
                     gap: 20,
                   }}>
                   <View style={{flexDirection: 'row', marginTop: 10}}>
-                    <View style={{width: 150, marginRight: 10}}>
+                    <View
+                      style={{
+                        width: post.finished || user.Role.trim() === 'Organization' ? '82%' : 150,
+                        marginRight: 10,
+                      }}>
                       <ScrollView horizontal>
                         {participatedUsers.map((user, index) => (
                           <Image
@@ -417,12 +430,12 @@ const EventDetails = ({route}) => {
                       </Text>
                     </View>
                   </View>
-
                   <View style={{width: 300, height: 40, marginTop: 10}}>
                     {user &&
                     userData &&
                     user.Useremail !== userData.Useremail &&
-                    user.Role.trim() !== 'Organization' ? (
+                    user.Role.trim() !== 'Organization' &&
+                    post.finished !== true ? (
                       !participated ? (
                         <TouchableOpacity
                           onPress={handleParticipate}
@@ -469,6 +482,21 @@ const EventDetails = ({route}) => {
                     )}
                   </View>
                 </View>
+                {post.finished === true &&
+                <View style={{backgroundColor: '#0077be' , marginTop : 10 , borderRadius : 10}}>
+                  <Text
+                    style={{
+                      color: 'white',
+                      margin: 10,
+                      textAlign: 'center',
+                      fontSize: 30,
+                      marginTop : 10,
+                      paddingBottom : 0
+                    }}>
+                    Event Completed
+                  </Text>
+                </View>
+                }
                 <View>
                   <Text
                     style={{
@@ -516,5 +544,40 @@ const styles = StyleSheet.create({
     color: 'gray',
     fontSize: 16,
     paddingLeft: 42,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    // Other styles...
+  },
+  summaryButton: {
+    marginVertical: 10,
+    padding: 10,
+    backgroundColor: 'lightgray',
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  summaryButtonText: {
+    fontSize: 16,
+  },
+  summaryFormContainer: {
+    position: 'absolute',
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  summaryFormHeading: {
+    fontSize: 20,
+    marginBottom: 10,
+  },
+  summaryInput: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: 'gray',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 10,
+    minHeight: 100,
   },
 });

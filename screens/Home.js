@@ -9,80 +9,97 @@ import {
   View,
   PermissionsAndroid,
   RefreshControl,
+  StatusBar,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import BottomNavigation from '../components/BottomNavigation';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
-import {useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect , useNavigation} from '@react-navigation/native';
 import Geolocation from 'react-native-geolocation-service';
 import Loader from '../components/Loader';
+import CalendarGrid from '../components/Calender';
 
 const Home = props => {
+  const navigation = useNavigation();
   const [currentUser, setCurrentUser] = useState(null);
   const [userData, setUserData] = useState(null);
   const [profileImg, setProfileImg] = useState(null);
   const [location, setLocation] = useState(false);
   const [events, setEvents] = useState([]);
-  const [eventUser, setEventUser] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loc, setLoc] = useState('');
 
+  //initially update flag
+  const updateFlags = async () => {
+    try {
+      const currentDate = new Date();
+      const events = await firestore().collection('Events').get();
+      await Promise.all(
+        events.docs.map(async doc => {
+          const eventData = {id: doc.id, ...doc.data()};
+          const eD = eventData.Date.split('/');
+          const eventDate = new Date(eD[2], eD[1] - 1, eD[0]);
+          if (currentDate > eventDate) {
+            await firestore().collection('Events').doc(eventData.id).update({
+              finished: true,
+            });
+            console.log('Flags updated');
+          }
+        }),
+      );
+    } catch (err) {
+      console.error('Error updating flags =', err);
+    }
+  };
+
   const getEvents = async user => {
-      if(loc){
-        try {
-          const userSnapShot = await firestore()
+    if (loc) {
+      try {
+        const userSnapShot = await firestore()
           .collection('Users')
           .where('Useremail', '==', user.email)
           .get();
         if (!userSnapShot.empty) {
           const userLoc = userSnapShot.docs[0].data().Location;
-          const currentDate = new Date(); 
           const eventsSnapshot = await firestore()
             .collection('Events')
             .where('City', '==', userLoc)
+            .where('finished', '==', false)
             .get();
           const eventsData = [];
           await Promise.all(
             eventsSnapshot.docs.map(async doc => {
               const eventData = {id: doc.id, ...doc.data()};
-              const eventDateParts = eventData.Date.split('/');
-              const eventDate = new Date(
-                eventDateParts[2], 
-                eventDateParts[1] - 1, 
-                eventDateParts[0], 
-              );
-              if (eventDate > currentDate) {
-                const userSnapshot = await firestore()
-                  .collection('Users')
-                  .where('Useremail', '==', eventData.Useremail)
-                  .get();
-                if (!userSnapshot.empty) {
-                  const userData = userSnapshot.docs[0].data();
-                  const filename = `${`Event${eventData.id}`}`;
-                  try {
-                    const url = await storage().ref(filename).getDownloadURL();
-                    eventData.uri = url;
-                    const file2 = `${eventData.Useremail}`;
-                    const url2 = await storage().ref(file2).getDownloadURL();
-                    eventData.uri2 = url2;
-                  } catch (error) {
-                    eventData.uri = null;
-                  }
+              const userSnapshot = await firestore()
+                .collection('Users')
+                .where('Useremail', '==', eventData.Useremail)
+                .get();
+              if (!userSnapshot.empty) {
+                const userData = userSnapshot.docs[0].data();
+                const filename = `${`Event${eventData.id}`}`;
+                try {
+                  const url = await storage().ref(filename).getDownloadURL();
+                  eventData.uri = url;
+                  const file2 = `${eventData.Useremail}`;
+                  const url2 = await storage().ref(file2).getDownloadURL();
+                  eventData.uri2 = url2;
+                } catch (error) {
+                  eventData.uri = null;
                 }
-                eventsData.push(eventData);
               }
+              eventsData.push(eventData);
             }),
           );
-          setEvents(eventsData);}
-        } catch (err) {
-          console.error(err);
+          setEvents(eventsData);
         }
+      } catch (err) {
+        console.error(err);
       }
-        else{
-          setEvents([]);
-        }
-      };
+    } else {
+      setEvents([]);
+    }
+  };
 
   const fetchUserData = async user => {
     if (user) {
@@ -143,7 +160,6 @@ const Home = props => {
       const data = await response.json();
       if (data.length > 0) {
         const {lat, lon} = data[0];
-        // Do something with the coordinates, such as setting state
         setLocation({latitude: parseFloat(lat), longitude: parseFloat(lon)});
       } else {
         console.log('Location not found');
@@ -156,6 +172,8 @@ const Home = props => {
   useFocusEffect(
     useCallback(() => {
       const unsubscribe = auth().onAuthStateChanged(user => {
+        //first update flags of events
+        updateFlags();
         setCurrentUser(user);
         fetchUserData(user);
         getEvents(user);
@@ -172,61 +190,101 @@ const Home = props => {
     setRefreshing(false);
   };
 
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonthNumber = currentDate.getMonth() + 1;
+  const monthNames = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+  const currentMonthName = monthNames[currentMonthNumber - 1];
+  const currentDateNumber = currentDate.getDate();
+  const nextMonthNumber = currentDate.getMonth() + 2;
+  const nextMonthName = monthNames[currentMonthNumber];
+
   return (
     <View style={styles.container}>
-      <ScrollView>
-        <View style={styles.content}>
-          <View style={styles.heading}>
-            {currentUser && profileImg ? (
-              <Image
-                source={{uri: profileImg}}
-                style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 100,
-                  borderWidth: 1,
-                  borderColor: '#57DDFB',
-                }}
-              />
-            ) : (
-              <Image
-                source={require('../assets/hero1.jpg')}
-                style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 100,
-                  borderWidth: 1,
-                  borderColor: 'black',
-                }}
-              />
-            )}
-            <Text style={{color: 'black', fontSize: 24, fontWeight: '900'}}>
-              {currentUser && userData ? userData.Username : 'User'}
-            </Text>
-          </View>
-          <ImageBackground
-            source={require('../assets/waves.png')}
-            style={styles.imageBackground}
-            resizeMode="cover">
-            <View style={styles.value}>
-              <Text style={{color: '#fff', fontSize: 60, fontWeight: '300'}}>
-                35,271,268
-              </Text>
-            </View>
-          </ImageBackground>
+      <StatusBar backgroundColor="#0077be" barStyle="dark-content" />
+      <View style={{backgroundColor: '#0077be', marginTop: -20}}>
+        <View
+          style={[
+            styles.heading,
+            {
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            },
+          ]}>
+          {currentUser && profileImg ? (
+            <Image
+              source={{uri: profileImg}}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 100,
+              }}
+            />
+          ) : (
+            <Image
+              source={require('../assets/hero1.jpg')}
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 100,
+              }}
+            />
+          )}
+          <Text style={{color: 'white', fontSize: 22}}>
+            {currentUser && userData ? userData.Username : 'User'}
+          </Text>
+          <TouchableOpacity onPress={()=>{navigation.navigate('ApiPage')}}>
+          <Image source={require('../assets/beaches.png')} style={{width :  40 , height : 40}} />
+        </TouchableOpacity>
         </View>
-        <ScrollView
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }>
+      </View>
+      <View style={{height: '43%'}}>
+        <ScrollView>
+          <CalendarGrid
+            currentMonth={currentMonthNumber}
+            month={currentMonthName}
+            currentYear={currentYear}
+            date={currentDateNumber}
+          />
+          <CalendarGrid
+            currentMonth={nextMonthNumber}
+            month={nextMonthName}
+            currentYear={currentYear}
+            date={currentDateNumber}
+          />
+        </ScrollView>
+      </View>
+
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }>
+        <ScrollView>
           <View>
             <Text
               style={{
                 color: 'black',
                 fontSize: 18,
-                padding: 10,
+                paddingLeft: 10,
               }}>
-              Upcoming Events in {userData && userData.Location}
+              Upcoming Events in{' '}
+              <Text style={{color: '#0077be'}}>
+                {userData && userData.Location}
+              </Text>
             </Text>
           </View>
           <ScrollView horizontal style={{margin: 10}}>
@@ -254,14 +312,27 @@ const Home = props => {
                     }}
                   />
                 )}
-                {event && (
+                {event && event.finished == true ? (
                   <Image
-                    source={require('../assets/beach.png')}
+                    source={require('../assets/red.png')}
                     style={{
                       position: 'absolute',
                       top: 7,
-                      width: 25,
-                      height: 25,
+                      width: 12,
+                      height: 12,
+                      zIndex: 999,
+                      left: 7,
+                      borderRadius: 100,
+                    }}
+                  />
+                ) : (
+                  <Image
+                    source={require('../assets/green.png')}
+                    style={{
+                      position: 'absolute',
+                      top: 7,
+                      width: 12,
+                      height: 12,
                       zIndex: 999,
                       left: 7,
                       borderRadius: 100,
@@ -352,13 +423,18 @@ const Home = props => {
                         paddingTop: 5,
                         marginTop: 15,
                         marginRight: 5,
+                        borderRadius: 7,
                       }}
                       onPress={() =>
                         props.navigation.navigate('EventDetails', {
                           id: event.id,
                         })
                       }>
-                      <Text style={{textAlign: 'center', fontWeight: 'bold'}}>
+                      <Text
+                        style={{
+                          textAlign: 'center',
+                          color: 'white',
+                        }}>
                         Check Details
                       </Text>
                     </TouchableOpacity>

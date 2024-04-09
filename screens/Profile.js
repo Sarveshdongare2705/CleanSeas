@@ -2,6 +2,7 @@ import React, {useEffect, useState, useCallback} from 'react';
 import {
   Image,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -157,22 +158,20 @@ const Profile = ({route}) => {
       return unsubscribe;
     }, [routeEmail]),
   );
-  
-
-  console.log('User Data -----.....>>>>>', userData);
 
   return (
     <View style={styles.container}>
+      <StatusBar backgroundColor="#0077be" barStyle="dark-content" />
+      <View style={{backgroundColor : '#0077be', marginBottom : 40}}>
+        <Text style={{color: 'white', fontSize: 18, marginTop : 10 , textAlign : 'center' , marginBottom : 10}}>
+          Profile
+        </Text>
+      </View>
       {uploading ? (
         <Loader />
       ) : (
         <ScrollView>
           <View style={styles.content}>
-            <View style={styles.heading}>
-              <Text style={{color: '#57DDFB', fontSize: 34, fontWeight: '900'}}>
-                Profile
-              </Text>
-            </View>
             <View
               style={{
                 flexDirection: 'column',
@@ -203,7 +202,7 @@ const Profile = ({route}) => {
                     height: 170,
                     marginTop: -100,
                     borderRadius: 100,
-                    borderWidth: 16,
+                    borderWidth: 15,
                     borderColor: 'white',
                   }}
                 />
@@ -233,7 +232,7 @@ const Profile = ({route}) => {
                 }}>
                 <View style={{flexDirection: 'column', alignItems: 'center'}}>
                   <Text
-                    style={{color: 'black', fontSize: 25, fontWeight: 'bold'}}>
+                    style={{color: '#0077be', fontSize: 25, fontWeight: 'bold'}}>
                     {followers}
                   </Text>
                   <Text style={{color: 'black', fontSize: 17}}>
@@ -244,7 +243,7 @@ const Profile = ({route}) => {
                   <View style={{flexDirection: 'column', alignItems: 'center'}}>
                     <Text
                       style={{
-                        color: 'black',
+                        color: '#0077be',
                         fontSize: 25,
                         fontWeight: 'bold',
                       }}>
@@ -255,23 +254,29 @@ const Profile = ({route}) => {
                     </Text>
                   </View>
                 ) : (
-                  <View style={{flexDirection: 'column', alignItems: 'center'}}>
-                    <Text
-                      style={{
-                        color: 'black',
-                        fontSize: 25,
-                        fontWeight: 'bold',
-                      }}>
-                      {events}
-                    </Text>
-                    <Text style={{color: 'black', fontSize: 17}}>
-                      {'Campaigns'}
-                    </Text>
-                  </View>
+                  <TouchableOpacity
+                    onPress={() =>
+                      navigation.navigate('OrgEvents', {email: routeEmail})
+                    }>
+                    <View
+                      style={{flexDirection: 'column', alignItems: 'center'}}>
+                      <Text
+                        style={{
+                          color: '#0077be',
+                          fontSize: 25,
+                          fontWeight: 'bold',
+                        }}>
+                        {events}
+                      </Text>
+                      <Text style={{color: 'black', fontSize: 17}}>
+                        {'Campaigns'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
                 )}
                 <View style={{flexDirection: 'column', alignItems: 'center'}}>
                   <Text
-                    style={{color: 'black', fontSize: 25, fontWeight: 'bold'}}>
+                    style={{color: '#0077be', fontSize: 25, fontWeight: 'bold'}}>
                     {following}
                   </Text>
                   <Text style={{color: 'black', fontSize: 17}}>
@@ -286,7 +291,7 @@ const Profile = ({route}) => {
                   <TouchableOpacity
                     style={[styles.button, styles.signUpButton]}
                     onPress={() => navigation.navigate('EditProfile')}>
-                    <Text style={{fontWeight: '900', fontSize: 15}}>
+                    <Text style={{fontWeight: '900', fontSize: 15 ,}}>
                       Edit Profile
                     </Text>
                   </TouchableOpacity>
@@ -294,7 +299,7 @@ const Profile = ({route}) => {
                   <TouchableOpacity
                     onPress={cancelFollow}
                     style={[styles.button, styles.signUpButton]}>
-                    <Text style={{fontWeight: '900', fontSize: 15}}>
+                    <Text style={{fontWeight: '900', fontSize: 15,}}>
                       Following
                     </Text>
                   </TouchableOpacity>
@@ -302,7 +307,7 @@ const Profile = ({route}) => {
                   <TouchableOpacity
                     onPress={handleFollow}
                     style={[styles.button, styles.signUpButton]}>
-                    <Text style={{fontWeight: '900', fontSize: 15}}>
+                    <Text style={{fontWeight: '900', fontSize: 15 ,}}>
                       Follow
                     </Text>
                   </TouchableOpacity>
@@ -325,13 +330,25 @@ const Profile = ({route}) => {
               userData &&
               currentUser.email === userData.Useremail &&
               userData.Role.trim() === 'Organization' ? (
-                <TouchableOpacity
-                  style={[styles.button, styles.signUpButton]}
-                  onPress={() => navigation.navigate('CreateDrive')}>
-                  <Text style={{fontWeight: '900', fontSize: 15}}>
-                    Create Event
-                  </Text>
-                </TouchableOpacity>
+                <View style={{flexDirection: 'row', gap: 20}}>
+                  <TouchableOpacity
+                    style={[styles.button, styles.signUpButton, {width: 130}]}
+                    onPress={() => navigation.navigate('CreateDrive')}>
+                    <Text style={{fontWeight: '900', fontSize: 15}}>
+                      Create Event
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.button, styles.signUpButton, {width: 130}]}
+                    onPress={() => {
+                      navigation.navigate('Chat', {
+                        email: routeEmail,
+                        senderEmail: currentUser.email,
+                      });
+                    }}>
+                    <Text style={{fontWeight: '900', fontSize: 15}}>Chat</Text>
+                  </TouchableOpacity>
+                </View>
               ) : (
                 currentUser &&
                 userData &&

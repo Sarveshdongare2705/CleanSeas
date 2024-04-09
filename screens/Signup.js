@@ -8,11 +8,13 @@ import {
   Alert,
   KeyboardAvoidingView,
   ScrollView,
+  StatusBar,
 } from 'react-native';
 import React, {useEffect, useState} from 'react';
 import auth from '@react-native-firebase/auth';
 import {useFocusEffect} from '@react-navigation/native';
 import firestore from '@react-native-firebase/firestore';
+import storage from '@react-native-firebase/storage';
 
 const Signup = props => {
   const [email, setEmail] = useState('');
@@ -69,7 +71,7 @@ const Signup = props => {
         if (res) {
           firestore()
             .collection('Users')
-            .add({Username: name, Useremail: email , Role : selectedRole})
+            .add({Username: name, Useremail: email, Role: selectedRole})
             .then(() => {
               console.log('User data added');
             });
@@ -97,6 +99,7 @@ const Signup = props => {
   };
   return (
     <ScrollView>
+      <StatusBar backgroundColor="black" barStyle="light-content" />
       <View style={[styles.container]}>
         <View>
           <Text

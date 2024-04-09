@@ -210,6 +210,8 @@ const CreateDrive = props => {
           Latitude: lat,
           Longitude: lon,
           Useremail : userData.Useremail,
+          finished : false,
+          summaryProvided : false,
         };
         const driveRef = await firestore().collection('Events').add(EventData);
         if (image !== null) {

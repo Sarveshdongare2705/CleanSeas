@@ -3,6 +3,7 @@ import {
   Image,
   ImageBackground,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -49,8 +50,7 @@ const Search = props => {
       } catch (err) {
         console.error(err);
       }
-    }
-    else{
+    } else {
       setUsers([]);
     }
   };
@@ -71,17 +71,20 @@ const Search = props => {
   return (
     <View
       style={[styles.container, {flex: 1, justifyContent: 'space-between'}]}>
-      <View>
+      <StatusBar backgroundColor="#0077be" barStyle="dark-content" />
+      <View style={{backgroundColor: '#0077be'}}>
         <Text
           style={{
-            color: 'black',
+            color: 'white',
+            fontSize: 18,
+            marginTop: 10,
             textAlign: 'center',
-            marginBottom: 0,
-            marginTop: 15,
-            fontSize: 16,
+            marginBottom: 10,
           }}>
           Search Users
         </Text>
+      </View>
+      <View>
         <View style={{flexDirection: 'row', alignItems: 'center', gap: -5}}>
           <View
             style={{
@@ -104,7 +107,7 @@ const Search = props => {
               style={{width: 17, height: 17}}
             />
             <TextInput
-              placeholder={`Search for events in your city`}
+              placeholder={`Search for users`}
               placeholderTextColor="gray"
               style={{
                 color: 'black',
@@ -130,11 +133,11 @@ const Search = props => {
                   margin: 10,
                   backgroundColor: 'white',
                   textAlign: 'center',
-                  color: '#57DDFB',
+                  color: '#0077be',
                   borderRadius: 20,
                   fontSize: 13,
                   borderWidth: 0.5,
-                  borderColor: '#57DDFB',
+                  borderColor: '#0077be',
                 }}>
                 Search
               </Text>

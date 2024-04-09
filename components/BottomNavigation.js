@@ -37,7 +37,11 @@ const BottomNavigation = () => {
   const navigation = useNavigation();
   return (
     <View style={styles.shadowContainer}>
-      <View style={styles.container}>
+      <View
+        style={[
+          styles.container,
+          {borderTopColor: 'lightgray', borderTopWidth: 0.3},
+        ]}>
         <TouchableOpacity
           style={styles.button}
           onPress={() => navigation.navigate('Home')}>
@@ -57,7 +61,6 @@ const BottomNavigation = () => {
         <TouchableOpacity
           style={[
             styles.button,
-            {backgroundColor: '#57DDFB', borderRadius: 50},
           ]}
           onPress={() => navigation.navigate('Search')}>
           <Image
@@ -75,7 +78,9 @@ const BottomNavigation = () => {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => navigation.navigate('Profile' , {email : userData.Useremail})}>
+          onPress={() =>
+            navigation.navigate('Profile', {email: userData.Useremail})
+          }>
           <Image
             source={require('../assets/profile.png')}
             style={{width: 25, height: 25}}
@@ -103,7 +108,7 @@ const styles = StyleSheet.create({
     borderTopColor: 'black',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 7,
+    padding: 2,
     backgroundColor: 'white',
   },
   button: {

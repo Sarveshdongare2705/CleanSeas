@@ -9,6 +9,7 @@ import {
   View,
   RefreshControl,
   TextInput,
+  StatusBar,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
@@ -158,28 +159,31 @@ const Community = props => {
     }
   };
 
-  //menu
-  const handleMenu = () => {
-    menu === true ? showMenu(false) : showMenu(true);
+  const handleDelete = async postId => {
+    try {
+      await firestore().collection('Posts').doc(postId).delete();
+      setPosts(prevPosts =>
+        prevPosts.filter(post => post.id !== postId),
+      );
+      console.log('Delete completed');
+    } catch (error) {
+      console.error('Error deleting message: ', error);
+    }
   };
 
   return (
     <View style={styles.container}>
-      <Text
-        style={{
-          color: 'black',
-          textAlign: 'center',
-          marginBottom: 0,
-          marginTop: 15,
-          fontSize: 16,
-        }}>
-        Community
-      </Text>
+      <StatusBar backgroundColor="#0077be" barStyle="dark-content" />
+      <View style={{backgroundColor : '#0077be'}}>
+        <Text style={{color: 'white', fontSize: 18, marginTop : 10 , textAlign : 'center' , marginBottom : 10}}>
+          Community
+        </Text>
+      </View>
       <View style={{flexDirection: 'row', alignItems: 'center', gap: -5}}>
         <View
           style={{
-            marginLeft: 15,
-            width: 230,
+            marginLeft: 7,
+            width: '67%',
             height: 45,
             flexDirection: 'row',
             gap: 7,
@@ -202,8 +206,7 @@ const Community = props => {
             style={{
               color: 'black',
               borderRadius: 20,
-              width: 180,
-              textAlign: 'flex-start',
+              width: '90%',
             }}
             onChangeText={text => {
               setSearch(text);
@@ -224,18 +227,18 @@ const Community = props => {
                 margin: 10,
                 backgroundColor: 'white',
                 textAlign: 'center',
-                color: '#57DDFB',
+                color: '#0077be',
                 borderRadius: 20,
                 fontSize: 13,
                 borderWidth: 0.5,
-                borderColor: '#57DDFB',
+                borderColor: '#0077be',
               }}>
               Search
             </Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity
-          style={{position: 'absolute', top: 567, right: 7, zIndex: 999}}
+          style={{position: 'absolute', top: '1040%', right: 7, zIndex: 999}}
           onPress={() => props.navigation.navigate('CreatePost')}>
           <View>
             <Text
@@ -245,15 +248,15 @@ const Community = props => {
                 padding: 13,
                 width: 120,
                 height: 45,
-                margin: 10,
                 backgroundColor: 'white',
                 textAlign: 'center',
-                color: '#57DDFB',
+                color: '#0077be',
                 borderRadius: 18,
-                backgroundColor: 'black',
+                backgroundColor: '#0077be',
                 color: 'white',
-                borderColor: 'black',
+                borderColor: '#0077be',
                 borderWidth: 0.4,
+                marginRight :5,
               }}>
               Create Post
             </Text>
@@ -287,7 +290,9 @@ const Community = props => {
                 }}>
                 {userimages && userimages[post.Useremail] !== null ? (
                   <TouchableOpacity
-                  onPress={() => navigation.navigate('Profile' , {email : post.Useremail})}>
+                    onPress={() =>
+                      navigation.navigate('Profile', {email: post.Useremail})
+                    }>
                     <Image
                       source={{
                         uri:
@@ -314,13 +319,34 @@ const Community = props => {
                     justifyContent: 'space-between',
                     gap: 110,
                   }}>
-                  <View>
-                    <Text style={{color: 'black', fontSize: 18}}>
-                      {usernames[post.Useremail] || 'Loading...'}
-                    </Text>
-                    <Text style={{color: 'gray', fontSize: 10}}>
-                      {post.time.toDate().toLocaleString()}
-                    </Text>
+                  <View
+                    style={{
+                      flexDirection: 'ro',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}>
+                    <View style={{width : 240}}>
+                      <Text style={{color: '#0077be', fontSize: 18}}>
+                        {usernames[post.Useremail] || 'Loading...'}
+                      </Text>
+                      <Text style={{color: 'gray', fontSize: 10}}>
+                        {post.time.toDate().toLocaleString()}
+                      </Text>
+                    </View>
+                    <View>
+                      {currentUser.email === post.Useremail && (
+                        <TouchableOpacity onPress={() => handleDelete(post.id)}>
+                          <Image
+                            source={require('../assets/delete.png')}
+                            style={{
+                              width: 15,
+                              height: 15,
+                              borderRadius: 100,
+                            }}
+                          />
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   </View>
                 </View>
               </View>

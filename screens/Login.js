@@ -7,6 +7,7 @@ import {
   Image,
   ScrollView,
   Alert,
+  StatusBar,
 } from 'react-native';
 import React, {useState} from 'react';
 import auth from '@react-native-firebase/auth';
@@ -59,6 +60,7 @@ const Login = (props) => {
   };
   return (
     <ScrollView>
+      <StatusBar backgroundColor="black" barStyle="light-content" />
       <View style={styles.container}>
         <TouchableOpacity onPress={() => props.navigation.navigate('Welcome')}>
           <Text

@@ -16,6 +16,9 @@ import CreateDrive from './screens/CreateDrive';
 import DatePicker from 'react-native-date-picker';
 import EventDetails from './screens/EventDetails';
 import Chat from './screens/Chat';
+import OrgEvents from './screens/OrgEvents';
+import DateEvents from './screens/DateEvents';
+import ApiPage from './screens/ApiPage';
 
 const Stack = createNativeStackNavigator();
 
@@ -54,6 +57,9 @@ const App = () => {
         <Stack.Screen name="CreateDrive" component={CreateDrive} />
         <Stack.Screen name="EventDetails" component={EventDetails} />
         <Stack.Screen name="Chat" component={Chat} />
+        <Stack.Screen name='OrgEvents' component={OrgEvents} />
+        <Stack.Screen name='DateEvents' component={DateEvents} />
+        <Stack.Screen name='ApiPage' component={ApiPage} />
       </Stack.Navigator>
     </NavigationContainer>
   );

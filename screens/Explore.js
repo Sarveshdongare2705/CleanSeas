@@ -9,6 +9,7 @@ import {
   View,
   RefreshControl,
   TextInput,
+  StatusBar,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
@@ -21,16 +22,17 @@ const Explore = props => {
   const [currentUser, setCurrentUser] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [events, setEvents] = useState([]);
-  const [orgevents, setOrgEvents] = useState([]);
-  const [participatedEvents, setParticiatedEvents] = useState([]);
+  const [completedEvents, setCompletedEvents] = useState([]);
   const [orgs, setOrgs] = useState([]);
   const [search, setSearch] = useState('');
   const [searcherr, showSearchErr] = useState(false);
   const [searching, setSearching] = useState(false);
+
   const getEvents = async () => {
     try {
       const participationsSnapshot = await firestore()
         .collection('Events')
+        .where('finished', '==', false)
         .get();
       const eventsData = [];
       await Promise.all(
@@ -61,11 +63,11 @@ const Explore = props => {
       console.error(err);
     }
   };
-  const getOrgEvents = async () => {
+  const getCompletedEvents = async user => {
     try {
       const participationsSnapshot = await firestore()
         .collection('Events')
-        .where('Useremail', '==', currentUser.email)
+        .where('finished', '==', true)
         .get();
       const eventsData = [];
       await Promise.all(
@@ -91,44 +93,8 @@ const Explore = props => {
           eventsData.push(eventData);
         }),
       );
-      setOrgEvents(eventsData);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-  const getParticipatedEvents = async user => {
-    try {
-      const participationsSnapshot = await firestore()
-        .collection('Participations')
-        .where('Useremail', '==', user.email)
-        .get();
-      const eventsData = [];
 
-      await Promise.all(
-        participationsSnapshot.docs.map(async doc => {
-          const participationData = {id: doc.id, ...doc.data()};
-          const eventSnapshot = await firestore()
-            .collection('Events')
-            .doc(participationData.EventId)
-            .get();
-
-          if (eventSnapshot.exists) {
-            const eventData = {id: eventSnapshot.id, ...eventSnapshot.data()};
-            try {
-              const filename = `Event${eventData.id}`;
-              const url = await storage().ref(filename).getDownloadURL();
-              eventData.uri = url;
-            } catch (err) {
-              console.log(err);
-            }
-            eventsData.push(eventData);
-          } else {
-            console.log(`Event with ID ${participationData.eventId} not found`);
-          }
-        }),
-      );
-
-      setParticiatedEvents(eventsData);
+      setCompletedEvents(eventsData);
     } catch (err) {
       console.error(err);
     }
@@ -167,7 +133,8 @@ const Explore = props => {
       try {
         const eventsSnapshot = await firestore()
           .collection('Events')
-          .where('City', '==', searchVal)
+          .where('City', '>=', searchVal.trim())
+          .where('City', '<=', searchVal.trim() + '\uf8ff')
           .get();
         const eventsData = [];
         await Promise.all(
@@ -197,8 +164,7 @@ const Explore = props => {
       } catch (err) {
         console.error(err);
       }
-    }
-    else{
+    } else {
       setSearching(false);
       getEvents();
     }
@@ -209,8 +175,7 @@ const Explore = props => {
       if (user) {
         setCurrentUser(user);
         getEvents();
-        getOrgEvents();
-        getParticipatedEvents(user);
+        getCompletedEvents(user);
         setSearching(false);
         setSearch('');
         setEvents([]);
@@ -227,11 +192,11 @@ const Explore = props => {
     await getEvents();
     getOrgEvents();
     await getOrgs();
-    await getParticipatedEvents();
+    await getCompletedEvents();
     setRefreshing(false);
   };
 
-  console.log('Orgs', participatedEvents);
+  console.log('Orgs', completedEvents);
 
   return (
     <View
@@ -240,16 +205,19 @@ const Explore = props => {
         {flexDirection: 'column', justifyContent: 'space-between'},
       ]}>
       <View>
+      <StatusBar backgroundColor="#0077be" barStyle="dark-content" />
+      <View style={{backgroundColor: '#0077be'}}>
         <Text
           style={{
-            color: 'black',
+            color: 'white',
+            fontSize: 18,
+            marginTop: 10,
             textAlign: 'center',
-            marginBottom: 0,
-            marginTop: 15,
-            fontSize: 16,
+            marginBottom: 10,
           }}>
           Explore
         </Text>
+      </View>
         <View style={{flexDirection: 'row', alignItems: 'center', gap: -5}}>
           <View
             style={{
@@ -318,11 +286,12 @@ const Explore = props => {
             <Text
               style={{
                 color: 'black',
-                fontSize: 18,
+                fontSize: 15,
                 padding: 10,
-                marginTop : -10
+                marginTop: -10,
+                marginBottom: -10,
               }}>
-              {!searching ?  'All Events' : 'Search Results'}
+              {!searching ? 'All Events' : 'Search Results'}
             </Text>
           </View>
           <ScrollView horizontal style={{margin: 10}}>
@@ -350,20 +319,36 @@ const Explore = props => {
                     }}
                   />
                 )}
-                {event && (
+                {event && event.finished == true ? (
                   <Image
-                    source={require('../assets/beach.png')}
+                    source={require('../assets/red.png')}
                     style={{
                       position: 'absolute',
                       top: 7,
-                      width: 25,
-                      height: 25,
+                      width: 12,
+                      height: 12,
                       zIndex: 999,
                       left: 7,
                       borderRadius: 100,
                     }}
                   />
-                )}
+                )
+                :
+                (
+                  <Image
+                    source={require('../assets/green.png')}
+                    style={{
+                      position: 'absolute',
+                      top: 7,
+                      width: 12,
+                      height: 12,
+                      zIndex: 999,
+                      left: 7,
+                      borderRadius: 100,
+                    }}
+                  />
+                )
+              }
                 {event.uri && (
                   <Image
                     source={{uri: event.uri}}
@@ -454,7 +439,12 @@ const Explore = props => {
                           id: event.id,
                         })
                       }>
-                      <Text style={{textAlign: 'center', fontWeight: 'bold'}}>
+                      <Text
+                        style={{
+                          textAlign: 'center',
+                          fontWeight: 'bold',
+                          color: 'white',
+                        }}>
                         Check Details
                       </Text>
                     </TouchableOpacity>
@@ -467,14 +457,16 @@ const Explore = props => {
             <Text
               style={{
                 color: 'black',
-                fontSize: 18,
+                fontSize: 15,
                 padding: 10,
+                marginTop: -10,
+                marginBottom: -10,
               }}>
-              My Participations
+              Completed Events
             </Text>
           </View>
           <ScrollView horizontal style={{margin: 10}}>
-            {participatedEvents.map(event => (
+            {completedEvents.map(event => (
               <View
                 key={event.id}
                 style={{
@@ -495,6 +487,36 @@ const Explore = props => {
                     }}
                   />
                 )}
+                {event && event.finished == true ? (
+                  <Image
+                    source={require('../assets/red.png')}
+                    style={{
+                      position: 'absolute',
+                      top: 7,
+                      width: 12,
+                      height: 12,
+                      zIndex: 999,
+                      left: 7,
+                      borderRadius: 100,
+                    }}
+                  />
+                )
+                :
+                (
+                  <Image
+                    source={require('../assets/green.png')}
+                    style={{
+                      position: 'absolute',
+                      top: 7,
+                      width: 12,
+                      height: 12,
+                      zIndex: 999,
+                      left: 7,
+                      borderRadius: 100,
+                    }}
+                  />
+                )
+              }
                 <View style={{padding: 5}}>
                   <View
                     style={{
@@ -574,7 +596,12 @@ const Explore = props => {
                           id: event.id,
                         })
                       }>
-                      <Text style={{textAlign: 'center', fontWeight: 'bold'}}>
+                      <Text
+                        style={{
+                          textAlign: 'center',
+                          fontWeight: 'bold',
+                          color: 'white',
+                        }}>
                         Check Details
                       </Text>
                     </TouchableOpacity>
@@ -588,10 +615,11 @@ const Explore = props => {
               <Text
                 style={{
                   color: 'black',
-                  fontSize: 18,
+                  fontSize: 15,
                   padding: 10,
-                  marginBottom: -20,
-                  paddingBottom: 20,
+                  marginTop: -10,
+                  marginBottom: -10,
+                  textAlign: 'center',
                 }}>
                 Organizations
               </Text>

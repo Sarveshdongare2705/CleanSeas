@@ -23,8 +23,9 @@ const Welcome = props => {
 
   return (
     <View style={styles.container}>
+      <StatusBar backgroundColor="black" barStyle="light-content" />
       <ImageBackground
-        source={require('../assets/welcome.jpeg')}
+        source={require('../assets/welcome.jpg')}
         style={styles.imageBackground}
         resizeMode="cover">
         <View style={styles.content}>
@@ -34,7 +35,7 @@ const Welcome = props => {
             </Text>
             <Text style={styles.subheadingText}>{typedText}</Text>
           </View>
-          <View style={styles.buttons}>
+          <View style={[styles.buttons]}>
             <TouchableOpacity
               style={[styles.button, styles.signInButton]}
               onPress={() => props.navigation.navigate('Login')}>
