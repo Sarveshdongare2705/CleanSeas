@@ -252,7 +252,7 @@ const Home = props => {
         </TouchableOpacity>
         </View>
       </View>
-      <View style={{height: '43%'}}>
+      <View style={{height: '42%' , marginBottom : '2%'}}>
         <ScrollView>
           <CalendarGrid
             currentMonth={currentMonthNumber}

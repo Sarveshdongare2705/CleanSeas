@@ -27,7 +27,7 @@ const ApiPage = () => {
   const fetchBeaches = async searchTerm => {
     try {
       const response = await fetch(
-        `https://307d-2401-4900-1d5c-fd20-54e2-33fc-df55-b1b4.ngrok-free.app/beaches?country=${searchTerm}`,
+        `https://cb7b-49-32-185-172.ngrok-free.app/beaches?country=${searchTerm}`,
       );
       if (!response.ok) {
         showErr(true)
@@ -165,7 +165,7 @@ const ApiPage = () => {
                   {beach.image && (
                     <Image
                       source={{uri: beach.image}}
-                      style={{width: 100, height: 60, borderRadius: 25}}
+                      style={{width: 100, height: 60}}
                     />
                   )}
                   <View style={{flexDirection: 'column', gap: 10}}>

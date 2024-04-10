@@ -13,12 +13,15 @@ import {
   Modal,
   TextInput,
   Button,
+  Keyboard,
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 import auth from '@react-native-firebase/auth';
 import BottomNavigation from '../components/BottomNavigation';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
+import Loader from '../components/Loader';
 
 const EventDetails = ({route}) => {
   const {id} = route.params;
@@ -34,21 +37,123 @@ const EventDetails = ({route}) => {
   const [participated, setParticiated] = useState(false);
   const [participatedUsers, setParticipatedUsers] = useState([]);
   const [count, setCount] = useState(0);
-  const [showForm , setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [formImage, setFormImage] = useState(null);
+  const [thoughts, setThoughts] = useState('');
+  const [thoughtsData, setThoughtsData] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const pickImage = async () => {
+    const result = await launchImageLibrary({mediaType: 'photo'});
+    console.log(result);
+    setFormImage(result);
+  };
 
-  const handleShowForm = async() => {
-    setShowForm(!showForm)
-  }
+  const handleSubmitThoughts = async () => {
+    try {
+      if (thoughts !== '') {
+        if (formImage !== null) {
+          setUploading(true);
+          const timestamp = firestore.Timestamp.now();
+          const ThoughtsData = {
+            Useremail: user.Useremail,
+            EventId: id,
+            Thought: thoughts,
+            Time: timestamp,
+          };
+          const ThoughtsRef = await firestore()
+            .collection('Thoughts')
+            .add(ThoughtsData);
+          console.log('Thought  posted');
+          const filename = ThoughtsRef.id;
+          const reference = storage().ref(`Thought${filename}`);
+          await reference.putFile(formImage.assets[0].uri);
+          console.log('Image uploaded successfullly');
+          setThoughts('');
+          setFormImage(null);
+          fetchThoughts();
+          setUploading(false);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const fetchThoughts = async () => {
+    try {
+      const thoughtsSnapshot = await firestore()
+        .collection('Thoughts')
+        .where('EventId', '==', id)
+        .get();
+
+      const thoughtsData = [];
+      await Promise.all(
+        thoughtsSnapshot.docs.map(async doc => {
+          const thoughtData = {id: doc.id, ...doc.data()};
+          const userSnapshot = await firestore()
+            .collection('Users')
+            .where('Useremail', '==', thoughtData.Useremail)
+            .get();
+          if (!userSnapshot.empty) {
+            const userData = userSnapshot.docs[0].data();
+            const filename1 = `Thought${thoughtData.id}`;
+            const filename2 = `${thoughtData.Useremail}`;
+            const url1 = await storage().ref(filename1).getDownloadURL();
+            thoughtData.uri1 = url1;
+            const url2 = await storage().ref(filename2).getDownloadURL();
+            thoughtData.uri2 = url2;
+            thoughtData.name = userData.Username;
+          }
+          thoughtsData.push(thoughtData);
+        }),
+      );
+      setThoughtsData(thoughtsData);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const handleThoughtDelete = async thoughtId => {
+    try {
+      await firestore().collection('Thoughts').doc(thoughtId).delete();
+      setThoughtsData(prevThoughts =>
+        prevThoughts.filter(thought => thought.id !== thoughtId),
+      );
+      console.log('Delete completed');
+      fetchThoughts();
+    } catch (error) {
+      console.error('Error deleting message: ', error);
+    }
+  };
+
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      'keyboardDidShow',
+      () => {
+        setIsKeyboardOpen(true);
+      },
+    );
+
+    const keyboardDidHideListener = Keyboard.addListener(
+      'keyboardDidHide',
+      () => {
+        setIsKeyboardOpen(false);
+      },
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
 
   const fetchParticipatedUsers = async () => {
-    console.log('Started');
     try {
       const participantsSnapshot = await firestore()
         .collection('Participations')
         .where('EventId', '==', id)
         .get();
-
-      console.log('------>>>>', participantsSnapshot.docs);
 
       const participatedUsers = [];
       for (const doc of participantsSnapshot.docs) {
@@ -75,7 +180,6 @@ const EventDetails = ({route}) => {
         setPost(postData);
         const filename = `Event${id}`;
         url = await storage().ref(filename).getDownloadURL();
-        console.log('Url', url);
         setImage(url);
         if (postData) {
           try {
@@ -107,6 +211,7 @@ const EventDetails = ({route}) => {
     setRefreshing(true);
     await fetchPostDetails();
     await fetchParticipatedUsers();
+    await fetchThoughts();
     setRefreshing(false);
   };
 
@@ -132,8 +237,6 @@ const EventDetails = ({route}) => {
       .where('Useremail', '==', user.email)
       .where('EventId', '==', id)
       .get();
-
-    console.log(partSnapshot);
     if (!partSnapshot.empty) {
       //already participation found
       setParticiated(true);
@@ -147,17 +250,20 @@ const EventDetails = ({route}) => {
       const unsubscribe = auth().onAuthStateChanged(user => {
         fetchPostDetails();
         setParticiated(false);
+        setUploading(false);
+        setLoading(false);
+        setThoughts('');
+        setFormImage(null);
         setCurrentUser(user);
         fetchUserData(user);
         fetchPostDetails();
         fetchParticipatedUsers();
         checkParticipation(user);
+        fetchThoughts();
       });
       return unsubscribe;
     }, []),
   );
-
-  console.log('Participate', participatedUsers);
 
   const handleParticipate = async () => {
     try {
@@ -223,30 +329,6 @@ const EventDetails = ({route}) => {
             <View></View>
           )}
           <View style={{height: 393, backgroundColor: 'white'}}>
-            <View
-              style={{
-                position: 'absolute',
-                bottom: 3,
-                right: 7,
-                flexDirection: 'row',
-                gap: 3,
-                alignItems: 'center',
-                zIndex: 999,
-              }}>
-              <TouchableOpacity
-                onPress={() => {
-                  Linking.openURL(`tel:${post.Contact}`);
-                }}
-                style={{
-                  width: 50,
-                  height: 50,
-                }}>
-                <Image
-                  source={require('../assets/mobile.png')}
-                  style={{width: 50, height: 50}}
-                />
-              </TouchableOpacity>
-            </View>
             <View style={{paddingTop: 10}}>
               <ScrollView
                 refreshControl={
@@ -363,13 +445,33 @@ const EventDetails = ({route}) => {
                         style={{width: 40, height: 40, borderRadius: 100}}
                       />
                     )}
-                    <View style={{}}>
-                      <Text style={{color: 'black', fontSize: 16}}>
-                        {userData ? userData.Username : 'Loading ...'}
-                      </Text>
-                      <Text style={{color: 'gray', fontSize: 12}}>
-                        {userData ? userData.Useremail : ''}
-                      </Text>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 84,
+                      }}>
+                      <View style={{}}>
+                        <Text style={{color: 'black', fontSize: 16}}>
+                          {userData ? userData.Username : 'Loading ...'}
+                        </Text>
+                        <Text style={{color: 'gray', fontSize: 12}}>
+                          {userData ? userData.Useremail : ''}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => {
+                          Linking.openURL(`tel:${post.Contact}`);
+                        }}
+                        style={{
+                          width: 24,
+                          height: 24,
+                        }}>
+                        <Image
+                          source={require('../assets/mobile.png')}
+                          style={{width: 24, height: 24}}
+                        />
+                      </TouchableOpacity>
                     </View>
                   </View>
                 </View>
@@ -384,7 +486,10 @@ const EventDetails = ({route}) => {
                   <View style={{flexDirection: 'row', marginTop: 10}}>
                     <View
                       style={{
-                        width: post.finished || user.Role.trim() === 'Organization' ? '82%' : 150,
+                        width:
+                          post.finished || user.Role.trim() === 'Organization'
+                            ? '82%'
+                            : 150,
                         marginRight: 10,
                       }}>
                       <ScrollView horizontal>
@@ -482,37 +587,203 @@ const EventDetails = ({route}) => {
                     )}
                   </View>
                 </View>
-                {post.finished === true &&
-                <View style={{backgroundColor: '#0077be' , marginTop : 10 , borderRadius : 10}}>
-                  <Text
+                {post.finished === true && (
+                  <View
                     style={{
-                      color: 'white',
-                      margin: 10,
-                      textAlign: 'center',
-                      fontSize: 30,
-                      marginTop : 10,
-                      paddingBottom : 0
+                      backgroundColor: 'lightgray',
+                      marginTop: 10,
+                      borderRadius: 10,
+                      width: '100%',
+                      height: 100,
+                      justifyContent: 'center',
                     }}>
-                    Event Completed
-                  </Text>
-                </View>
-                }
-                <View>
-                  <Text
-                    style={{
-                      color: 'black',
-                      margin: 10,
-                      textAlign: 'justify',
-                      fontSize: 20,
-                      borderBottomWidth: 0.2,
-                      borderBottomColor: 'lightgray',
-                    }}>
-                    Description
-                  </Text>
-                  <Text style={{color: 'black', margin: 10}}>
-                    {post.Description}
-                  </Text>
-                </View>
+                    <Text
+                      style={{
+                        color: 'white',
+                        margin: 10,
+                        textAlign: 'center',
+                        fontSize: 26,
+                        paddingBottom: 0,
+                        fontWeight: '500',
+                      }}>
+                      Event Completed
+                    </Text>
+                  </View>
+                )}
+                {post.finished === false ? (
+                  <View>
+                    <Text
+                      style={{
+                        color: 'black',
+                        margin: 10,
+                        textAlign: 'justify',
+                        fontSize: 20,
+                        borderBottomWidth: 0.2,
+                        borderBottomColor: 'lightgray',
+                      }}>
+                      Description
+                    </Text>
+                    <Text style={{color: 'black', margin: 10}}>
+                      {post.Description}
+                    </Text>
+                  </View>
+                ) : (
+                  <View>
+                    <Text
+                      style={{
+                        color: 'black',
+                        textAlign: 'justify',
+                        fontSize: 20,
+                        borderBottomWidth: 0.2,
+                        borderBottomColor: 'lightgray',
+                        marginTop: 20,
+                        marginBottom: 10,
+                      }}>
+                      Post Event Cleanup Gallery
+                    </Text>
+                    <View style={{width: '100%', height: 300}}>
+                      <ScrollView horizontal>
+                        {thoughtsData.map(thought => (
+                          <View
+                            style={{
+                              width: 220,
+                              flexDirection: 'column',
+                              gap: 5,
+                              borderWidth: 0.4,
+                              borderColor: 'lightgray',
+                              padding: 5,
+                              borderRadius: 20,
+                              height: 287,
+                              marginRight: 10,
+                            }}>
+                            <Image
+                              source={{uri: thought.uri1}}
+                              style={{
+                                width: '100%',
+                                height: 120,
+                                borderRadius: 20,
+                              }}
+                            />
+                            <View
+                              style={{
+                                flexDirection: 'row',
+                                padding: 5,
+                                alignItems: 'center',
+                                gap: 7,
+                              }}>
+                              <Image
+                                source={{uri: thought.uri2}}
+                                style={{
+                                  width: 30,
+                                  height: 30,
+                                  borderRadius: 100,
+                                }}
+                              />
+                              <Text style={{color: 'black', fontSize: 16}}>
+                                {thought.name}
+                              </Text>
+                              {currentUser.email === thought.Useremail && (
+                                <TouchableOpacity
+                                  onPress={() =>
+                                    handleThoughtDelete(thought.id)
+                                  }>
+                                  <Image
+                                    source={require('../assets/delete.png')}
+                                    style={{
+                                      width: 13,
+                                      height: 13,
+                                      marginLeft: 27,
+                                    }}
+                                  />
+                                </TouchableOpacity>
+                              )}
+                            </View>
+                            <View
+                              style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: 10,
+                                paddingLeft: 5,
+                              }}>
+                              <Text style={{color: 'black', fontSize: 13}}>
+                                {thought.Thought}
+                              </Text>
+                            </View>
+                            <Text
+                              style={{
+                                color: 'gray',
+                                fontSize: 8,
+                                textAlign: 'right',
+                                marginRight: 10,
+                                marginTop: 5,
+                              }}>
+                              {thought.Time.toDate().toLocaleString()}
+                            </Text>
+                          </View>
+                        ))}
+                      </ScrollView>
+                    </View>
+                    <View
+                      style={{
+                        width: '100%',
+                        height: 70,
+                        borderWidth: 0.4,
+                        marginBottom: isKeyboardOpen ? 200 : 10,
+                        borderColor: 'lightgray',
+                        borderRadius: 20,
+                        flexDirection: 'row',
+                        gap: 5,
+                        padding: 7,
+                        alignItems: 'center',
+                      }}>
+                      <Image
+                        source={{uri: formImage && formImage.assets[0].uri}}
+                        style={{
+                          width: '24%',
+                          height: 50,
+                          borderRadius: 10,
+                        }}
+                      />
+                      <TextInput
+                        placeholder={`Enter your thoughts on event 🌟`}
+                        style={{width: '62%', color: 'black'}}
+                        placeholderTextColor="gray"
+                        maxLength={150}
+                        value={thoughts}
+                        onChangeText={text => {
+                          setThoughts(text);
+                        }}
+                      />
+                      <View
+                        style={{
+                          flexDirection: 'column',
+                          gap: 7,
+                          marginLeft: -7,
+                        }}>
+                        <TouchableOpacity onPress={pickImage}>
+                          <Image
+                            source={require('../assets/image.png')}
+                            style={{
+                              width: 20,
+                              height: 20,
+                              marginLeft: 20,
+                            }}
+                          />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={handleSubmitThoughts}>
+                          <Image
+                            source={require('../assets/send.png')}
+                            style={{
+                              width: 20,
+                              height: 20,
+                              marginLeft: 20,
+                            }}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+                )}
               </ScrollView>
             </View>
           </View>

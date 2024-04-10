@@ -47,10 +47,6 @@ const Chat = ({route}) => {
     setRefreshing(false);
   };
 
-  const handleContentSizeChange = event => {
-    setInputHeight(event.nativeEvent.contentSize.height);
-  };
-
   const fetchOrgDetails = async () => {
     try {
       const orgDoc = await firestore()

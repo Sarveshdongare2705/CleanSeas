@@ -95,7 +95,7 @@ const CalendarGrid = ({currentMonth, month, currentYear, date}) => {
               style={[
                 styles.cell,
                 {
-                  backgroundColor: cell === date ? 'lightgray' : 'white',
+                  backgroundColor: cell === date ? 'gray' : 'white',
                   color: cell === date ? '#0077be' : 'white',
                   borderWidth: cell ? 0.4 : 0,
                   borderColor: 'lightgray',
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   monthText: {
-    fontSize: 15,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#0077be',
   },
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'flex-start',
     padding: 2,
-    height: 50,
+    height: 51,
   },
 });
 
