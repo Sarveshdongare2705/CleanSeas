@@ -1,6 +1,8 @@
 import React, {useEffect, useState, useCallback} from 'react';
 import {
+  ActivityIndicator,
   Image,
+  RefreshControl,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -14,6 +16,9 @@ import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import Loader from '../components/Loader';
+import {colors} from '../Colors';
+import FastImage from 'react-native-fast-image';
+import Post from '../components/Post';
 
 const Profile = ({route}) => {
   const navigation = useNavigation();
@@ -28,6 +33,8 @@ const Profile = ({route}) => {
   const [following, setFollowing] = useState(0);
   const [events, setEvents] = useState(0);
   const [hasFollowed, setHasFolllowed] = useState(false);
+  const [posts, setPosts] = useState([]);
+  const [postsCount, setPostsCount] = useState(0);
 
   const fetchUserData = async () => {
     if (routeEmail) {
@@ -86,11 +93,11 @@ const Profile = ({route}) => {
       setFollowing(followingSnapshot.docs.length);
 
       const eventsSnapshot = await firestore()
-        .collection('Events')
+        .collection('Posts')
         .where('Useremail', '==', routeEmail)
         .get();
 
-      setEvents(eventsSnapshot.docs.length);
+      setPostsCount(eventsSnapshot.docs.length);
     } catch (err) {
       console.error(err);
     }
@@ -116,8 +123,8 @@ const Profile = ({route}) => {
         followerEmail: currentUser.email,
         followedEmail: userData.Useremail,
       });
-      setFollowers(followers + 1);
       setHasFolllowed(true);
+      setFollowers(followers + 1);
     } catch (error) {
       console.error('Error participating:', error);
     }
@@ -133,25 +140,63 @@ const Profile = ({route}) => {
       if (!partSnapshot.empty) {
         const partDoc = partSnapshot.docs[0];
         await partDoc.ref.delete();
-        setFollowers(followers - 1);
         setHasFolllowed(false);
+        setFollowers(followers - 1);
       }
     } catch (error) {
       console.error('Error canceling participation:', error);
+    }
+  };
+  const getPosts = async email => {
+    console.log(email);
+    try {
+      const postsSnapshot = await firestore()
+        .collection('Posts')
+        .where('Useremail', '==', email)
+        .orderBy('time', 'desc')
+        .get();
+      const postsData = [];
+      await Promise.all(
+        postsSnapshot.docs.map(async doc => {
+          const postData = {id: doc.id, ...doc.data()};
+          const userSnapshot = await firestore()
+            .collection('Users')
+            .where('Useremail', '==', postData.Useremail)
+            .get();
+          if (!userSnapshot.empty) {
+            const user = userSnapshot.docs[0].data();
+            postData.Username = user.Username;
+            const profileImg = `${user.Useremail}`;
+            const postImg = `${`Post${postData.id}`}`;
+            try {
+              const url2 = await storage().ref(profileImg).getDownloadURL();
+              postData.profileImg = url2;
+              const url1 = await storage().ref(postImg).getDownloadURL();
+              postData.postImg = url1;
+            } catch (error) {
+              postData.postImg = null;
+            }
+          }
+          postsData.push(postData);
+        }),
+      );
+      setPosts(postsData);
+    } catch (err) {
+      console.error(err);
     }
   };
 
   useFocusEffect(
     useCallback(() => {
       const unsubscribe = auth().onAuthStateChanged(user => {
+        setPostsCount(0);
         setCurrentUser(user);
-        setUserData(null);
-        setProfileImg(null);
+        getPosts(routeEmail);
+        fetchUserData();
         setFollowers(0);
         setParticipations(0);
         setFollowing(0);
         setHasFolllowed(false);
-        fetchUserData();
         checkFollow(user);
         fetchParticipations();
       });
@@ -159,229 +204,190 @@ const Profile = ({route}) => {
     }, [routeEmail]),
   );
 
+  const onRefresh = async () => {
+    setUploading(false);
+    await fetchUserData();
+    await getPosts(routeEmail);
+  };
+
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor="#0077be" barStyle="dark-content" />
-      <View style={{backgroundColor : '#0077be', marginBottom : 40}}>
-        <Text style={{color: 'white', fontSize: 18, marginTop : 10 , textAlign : 'center' , marginBottom : 10}}>
-          Profile
-        </Text>
-      </View>
-      {uploading ? (
-        <Loader />
-      ) : (
-        <ScrollView>
-          <View style={styles.content}>
-            <View
-              style={{
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '90%',
-                height: 300,
-                backgroundColor: '#f0f0f0',
-                marginTop: 100,
-                marginLeft: 18,
-                borderRadius: 20,
-              }}>
-              <TouchableOpacity
-                onPress={() =>
-                  navigation.navigate('Image', {
-                    uri: profileImg,
-                    path: 'Profile',
-                    email: routeEmail,
-                  })
-                }
-                style={{
-                  position: 'relative',
-                }}>
-                <Image
-                  source={{uri: profileImg && profileImg}}
-                  style={{
-                    width: 170,
-                    height: 170,
-                    marginTop: -100,
-                    borderRadius: 100,
-                    borderWidth: 15,
-                    borderColor: 'white',
-                  }}
-                />
-              </TouchableOpacity>
-              <View
-                style={{
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                <Text style={{color: 'black', fontSize: 25}}>
-                  {userData && userData.Username}
-                </Text>
-                <Text style={{color: 'gray', fontSize: 16}}>
-                  {userData && userData.Location}
-                </Text>
-              </View>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  margin: 30,
-                  justifyContent: 'space-between',
-                  gap: 25,
-                  marginLeft: 30,
-                }}>
-                <View style={{flexDirection: 'column', alignItems: 'center'}}>
-                  <Text
-                    style={{color: '#0077be', fontSize: 25, fontWeight: 'bold'}}>
-                    {followers}
-                  </Text>
-                  <Text style={{color: 'black', fontSize: 17}}>
-                    {'Followers'}
-                  </Text>
-                </View>
-                {userData && userData.Role.trim() === 'Individual' ? (
-                  <View style={{flexDirection: 'column', alignItems: 'center'}}>
-                    <Text
-                      style={{
-                        color: '#0077be',
-                        fontSize: 25,
-                        fontWeight: 'bold',
-                      }}>
-                      {participations}
-                    </Text>
-                    <Text style={{color: 'black', fontSize: 17}}>
-                      {'Participations'}
-                    </Text>
-                  </View>
-                ) : (
+      <StatusBar backgroundColor="white" barStyle="dark-content" />
+      <View style={styles.content}>
+        {currentUser && userData !== null && (
+          <View style={styles.section1}>
+            <Text style={styles.name}>{userData.Username}</Text>
+            <View style={{flexDirection: 'row', gap: 5}}>
+              {currentUser.email === routeEmail && (
+                <View style={{flexDirection: 'row', gap: 7}}>
                   <TouchableOpacity
-                    onPress={() =>
-                      navigation.navigate('OrgEvents', {email: routeEmail})
-                    }>
-                    <View
-                      style={{flexDirection: 'column', alignItems: 'center'}}>
-                      <Text
-                        style={{
-                          color: '#0077be',
-                          fontSize: 25,
-                          fontWeight: 'bold',
-                        }}>
-                        {events}
-                      </Text>
-                      <Text style={{color: 'black', fontSize: 17}}>
-                        {'Campaigns'}
-                      </Text>
-                    </View>
+                    onPress={() => navigation.navigate('CreatePost')}>
+                    <FastImage
+                      source={require('../assets/add.png')}
+                      style={{width: 24, height: 24, alignItems: 'flex-end'}}
+                      resizeMode={FastImage.resizeMode.cover}
+                    />
                   </TouchableOpacity>
-                )}
-                <View style={{flexDirection: 'column', alignItems: 'center'}}>
-                  <Text
-                    style={{color: '#0077be', fontSize: 25, fontWeight: 'bold'}}>
-                    {following}
-                  </Text>
-                  <Text style={{color: 'black', fontSize: 17}}>
-                    {'Following'}
-                  </Text>
-                </View>
-              </View>
-              <View style={{marginTop: -20}}>
-                {currentUser &&
-                userData &&
-                currentUser.email === userData.Useremail ? (
-                  <TouchableOpacity
-                    style={[styles.button, styles.signUpButton]}
-                    onPress={() => navigation.navigate('EditProfile')}>
-                    <Text style={{fontWeight: '900', fontSize: 15 ,}}>
-                      Edit Profile
-                    </Text>
-                  </TouchableOpacity>
-                ) : hasFollowed ? (
-                  <TouchableOpacity
-                    onPress={cancelFollow}
-                    style={[styles.button, styles.signUpButton]}>
-                    <Text style={{fontWeight: '900', fontSize: 15,}}>
-                      Following
-                    </Text>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    onPress={handleFollow}
-                    style={[styles.button, styles.signUpButton]}>
-                    <Text style={{fontWeight: '900', fontSize: 15 ,}}>
-                      Follow
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-            <View
-              style={{
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'flex-start',
-                width: '90%',
-                height: 175,
-                marginTop: 20,
-                backgroundColor: '#f0f0f0',
-                marginLeft: 18,
-                borderRadius: 20,
-              }}>
-              {currentUser &&
-              userData &&
-              currentUser.email === userData.Useremail &&
-              userData.Role.trim() === 'Organization' ? (
-                <View style={{flexDirection: 'row', gap: 20}}>
-                  <TouchableOpacity
-                    style={[styles.button, styles.signUpButton, {width: 130}]}
-                    onPress={() => navigation.navigate('CreateDrive')}>
-                    <Text style={{fontWeight: '900', fontSize: 15}}>
-                      Create Event
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.button, styles.signUpButton, {width: 130}]}
-                    onPress={() => {
-                      navigation.navigate('Chat', {
-                        email: routeEmail,
-                        senderEmail: currentUser.email,
-                      });
-                    }}>
-                    <Text style={{fontWeight: '900', fontSize: 15}}>Chat</Text>
+                  <TouchableOpacity>
+                    <FastImage
+                      source={require('../assets/status.png')}
+                      style={{width: 24, height: 24, alignItems: 'flex-end'}}
+                      resizeMode={FastImage.resizeMode.cover}
+                    />
                   </TouchableOpacity>
                 </View>
-              ) : (
-                currentUser &&
-                userData &&
-                currentUser.email !== routeEmail &&
-                userData.Role.trim() !== 'Individual' && (
-                  <TouchableOpacity
-                    style={[styles.button, styles.signUpButton]}
-                    onPress={() => {
-                      navigation.navigate('Chat', {
-                        email: routeEmail,
-                        senderEmail: currentUser.email,
-                      });
-                    }}>
-                    <Text style={{fontWeight: '900', fontSize: 15}}>Chat</Text>
-                  </TouchableOpacity>
-                )
               )}
-              {currentUser &&
-                userData &&
-                currentUser.email === userData.Useremail && (
-                  <TouchableOpacity
-                    style={[styles.button, styles.signUpButton]}
-                    onPress={handleLogout}>
-                    <Text style={{fontWeight: '900', fontSize: 15}}>
-                      Logout
-                    </Text>
-                  </TouchableOpacity>
-                )}
+              {userData.Role.trim() === 'Organization' && (
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate('Chat', {
+                      email: routeEmail,
+                      senderEmail: currentUser.email,
+                    })
+                  }>
+                  <FastImage
+                    source={require('../assets/chat.png')}
+                    style={{width: 24, height: 24, alignItems: 'flex-end'}}
+                    resizeMode={FastImage.resizeMode.cover}
+                  />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
-        </ScrollView>
-      )}
-      <BottomNavigation />
+        )}
+        {uploading ? (
+          <ActivityIndicator
+            size="large"
+            color={colors.aquaBlue}
+            style={{height: '100%'}}
+          />
+        ) : (
+          userData !== null &&
+          currentUser !== null && (
+            <ScrollView
+              style={styles.profile}
+              refreshControl={
+                <RefreshControl refreshing={uploading} onRefresh={onRefresh} />
+              }>
+              <View style={styles.section2}>
+                {profileImg ? (
+                  <TouchableOpacity
+                    onPress={() =>
+                      navigation.navigate('Image', {
+                        uri: profileImg,
+                        path: 'Profile',
+                        email: routeEmail,
+                      })
+                    }
+                    style={{
+                      position: 'relative',
+                    }}>
+                    <FastImage
+                      source={{uri: profileImg}}
+                      style={{
+                        width: 75,
+                        height: 75,
+                        alignItems: 'flex-end',
+                        borderRadius: 100,
+                        borderWidth: 2,
+                        borderColor: 'black',
+                      }}
+                      resizeMode={FastImage.resizeMode.cover}
+                    />
+                  </TouchableOpacity>
+                ) : (
+                  <FastImage
+                    source={require('../assets/profile.png')}
+                    style={{
+                      width: 72,
+                      height: 72,
+                      alignItems: 'flex-end',
+                      borderRadius: 100,
+                    }}
+                    resizeMode={FastImage.resizeMode.cover}
+                  />
+                )}
+                <View style={styles.details}>
+                  <View style={styles.detail}>
+                    <Text style={styles.value}>{participations}</Text>
+                    <Text style={styles.heading}>participations</Text>
+                  </View>
+                  <View style={styles.detail}>
+                    <Text style={styles.value}>{followers}</Text>
+                    <Text style={styles.heading}>followers</Text>
+                  </View>
+                  <View style={styles.detail}>
+                    <Text style={styles.value}>{following}</Text>
+                    <Text style={styles.heading}>following</Text>
+                  </View>
+                </View>
+              </View>
+              <View style={styles.section3}>
+                <Text style={styles.heading}>{userData.Location}</Text>
+                {userData.age && userData.gender && (
+                  <Text style={styles.heading}>
+                    {userData && userData.Role.trim() === 'Organization' ? 'Year Established : ' + userData.age : userData.age + ' ' + userData.gender}
+                  </Text>
+                )}
+                <Text style={styles.heading}>{userData.Useremail}</Text>
+                {userData.desc && (
+                  <Text style={styles.heading}>{userData.desc}</Text>
+                )}
+              </View>
+              <View style={styles.section4}>
+                {currentUser.email === routeEmail ? (
+                  <TouchableOpacity
+                    style={styles.btn}
+                    onPress={() => navigation.navigate('EditProfile')}>
+                    <Text style={styles.btntext}>Edit Profile</Text>
+                  </TouchableOpacity>
+                ) : hasFollowed ? (
+                  <TouchableOpacity style={styles.btn} onPress={cancelFollow}>
+                    <Text style={styles.btntext}>Unfollow</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity style={styles.btn} onPress={handleFollow}>
+                    <Text style={styles.btntext}>Follow</Text>
+                  </TouchableOpacity>
+                )}
+                {currentUser.email === routeEmail && (
+                  <TouchableOpacity style={styles.btn} onPress={handleLogout}>
+                    <Text style={styles.btntext}>Logout</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              <View style={styles.heading}>
+                <Text
+                  style={[
+                    styles.value,
+                    {
+                      fontSize: 15,
+                      borderBottomWidth: 0.3,
+                      borderBottomColor: 'lightgray',
+                      color: 'black',
+                      marginBottom: 10,
+                      paddingHorizontal: 5,
+                    },
+                  ]}>
+                  {postsCount + ' Posts'}
+                </Text>
+              </View>
+              {posts.length > 0 ? (
+                posts.map(post => (
+                  <Post post={post} currentUserEmail={currentUser.email} />
+                ))
+              ) : (
+                <Text>No posts available</Text>
+              )}
+              <View style={{width: '100%', height: 90}}></View>
+            </ScrollView>
+          )
+        )}
+      </View>
+      <View
+        style={{position: 'absolute', bottom: '0%', left: '3%', right: '3%'}}>
+        <BottomNavigation />
+      </View>
     </View>
   );
 };
@@ -390,31 +396,90 @@ export default Profile;
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: 'white',
+    height: '100%',
   },
   content: {
-    flex: 1,
+    height: '92%',
+    marginBottom: 20,
+  },
+  profile: {
+    display: 'flex',
+    flexDirection: 'column',
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+  },
+  section1: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+    position: 'fixed',
+    top: 10,
+    left: 0,
+    paddingHorizontal: 7,
+  },
+  section4: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  section3: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+    paddingHorizontal: 5,
+  },
+  section2: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    paddingHorizontal: 10,
+  },
+  name: {
+    color: 'black',
+    marginLeft: 5,
+    fontSize: 20,
+    fontWeight: '500',
+  },
+  details: {
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
+    width: '75%',
+  },
+  detail: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+  value: {
+    color: 'black',
+    fontWeight: '900',
+    fontSize: 18,
   },
   heading: {
-    marginTop: 10,
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-end',
-    padding: 20,
-    marginBottom: -7,
-    gap: 7,
+    color: 'black',
   },
-  button: {
-    width: 170,
-    padding: 12,
-    borderRadius: 20,
-    marginBottom: 10,
-    marginTop: 20,
+  btn: {
+    width: '49%',
+    height: 30,
+    borderWidth: 1,
+    borderColor: 'black',
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  signUpButton: {
-    backgroundColor: 'black',
+  btntext: {
+    fontSize: 14,
+    color: 'black',
+    fontWeight: '500',
   },
 });

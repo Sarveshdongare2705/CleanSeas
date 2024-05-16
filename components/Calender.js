@@ -12,6 +12,7 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import { colors } from '../Colors';
 
 const CalendarGrid = ({currentMonth, month, currentYear, date}) => {
   const [events, setEvents] = useState([]);
@@ -95,10 +96,11 @@ const CalendarGrid = ({currentMonth, month, currentYear, date}) => {
               style={[
                 styles.cell,
                 {
-                  backgroundColor: cell === date ? 'gray' : 'white',
-                  color: cell === date ? '#0077be' : 'white',
-                  borderWidth: cell ? 0.4 : 0,
-                  borderColor: 'lightgray',
+                  backgroundColor: cell === date ? colors.sandyBeige : 'white',
+                  color: cell === date ? colors.aquaBlue : 'white',
+                  borderWidth: cell ? 0.7 : 0,
+                  borderColor : colors.sandyBeige,
+                  borderRadius : 5
                 },
               ]}>
               <TouchableOpacity
@@ -107,10 +109,10 @@ const CalendarGrid = ({currentMonth, month, currentYear, date}) => {
                 }>
                 <Text
                   style={{
-                    color: 'gray',
-                    fontSize: 11,
+                    color: 'black',
+                    fontSize: 10,
                     color: cell === date ? 'white' : 'black',
-                    fontWeight: '100',
+                    fontWeight: '500',
                   }}>
                   {cell}
                 </Text>
@@ -124,9 +126,10 @@ const CalendarGrid = ({currentMonth, month, currentYear, date}) => {
                         style={{
                           width: 24,
                           height: 24,
-                          marginTop: 2,
                           borderRadius: 100,
-                          marginLeft: index > 0 ? -9 : 0,
+                          marginLeft: index > 0 ? -10 : 0,
+                          borderWidth : 2,
+                          borderColor : 'white',
                         }}
                       />
                     ))}
@@ -161,7 +164,7 @@ const CalendarGrid = ({currentMonth, month, currentYear, date}) => {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 10,
+    padding: 7,
   },
   monthRow: {
     flexDirection: 'row',
@@ -169,9 +172,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   monthText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#0077be',
+    color: colors.aquaBlue,
   },
   row: {
     flexDirection: 'row',
@@ -181,7 +184,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'flex-start',
     padding: 2,
-    height: 51,
+    height: 50,
+    margin : 3,
+    borderColor : colors.aquaBlue
   },
 });
 

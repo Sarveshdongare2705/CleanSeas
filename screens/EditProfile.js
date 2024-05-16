@@ -11,11 +11,11 @@ import {
 import React, {useCallback, useEffect, useState} from 'react';
 import Loader from '../components/Loader';
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
-
 import storage from '@react-native-firebase/storage';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import FastImage from 'react-native-fast-image';
 
 const EditProfile = props => {
   const navigation = useNavigation();
@@ -25,8 +25,16 @@ const EditProfile = props => {
   const [currentUser, setCurrentUser] = useState(null);
   const [userData, setUserData] = useState(null);
   const [updatedName, setUpdatedName] = useState('');
-  const [showErr, setShowErr] = useState(false);
+  const [desc, setDesc] = useState('');
   const [Location, setLocation] = useState('');
+  const [showErr, setShowErr] = useState(false);
+  const [nameErr, setNameErr] = useState(false);
+  const [locErr, setLocErr] = useState(false);
+  const [descErr, setDescErr] = useState(false);
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState('');
+  const [ageErr, setAgeErr] = useState(false);
+  const [genderErr, setGenderErr] = useState(false);
 
   const fetchUserData = async user => {
     if (user) {
@@ -37,6 +45,11 @@ const EditProfile = props => {
       if (!userSnapShot.empty) {
         const userData = userSnapShot.docs[0].data();
         setUserData(userData);
+        setUpdatedName(userData.Username);
+        userData.desc && setDesc(userData.desc);
+        setLocation(userData.Location);
+        userData.age && setAge(userData.age);
+        userData.gender && setGender(userData.gender);
         const filename = `${userData.Useremail}`;
         try {
           url = await storage().ref(filename).getDownloadURL();
@@ -51,31 +64,46 @@ const EditProfile = props => {
       setProfileImg(null);
     }
   };
-
   useFocusEffect(
     useCallback(() => {
       const unsubscribe = auth().onAuthStateChanged(user => {
         setCurrentUser(user);
         fetchUserData(user);
-        setShowErr(false);
       });
-
       return unsubscribe;
     }, []),
   );
-  //pick image
   const pickImage = async () => {
     const result = await launchImageLibrary({mediaType: 'photo'});
     console.log(result);
     setImage(result);
   };
+  useEffect(() => {
+    setNameErr(updatedName === '');
+  }, [updatedName]);
+  useEffect(() => {
+    setDescErr(desc === '');
+  }, [desc]);
+  useEffect(() => {
+    setLocErr(Location === '');
+  }, [Location]);
+  useEffect(() => {
+    setAgeErr(age === '');
+  }, [age]);
+  useEffect(() => {
+    setGenderErr(gender === '');
+  }, [gender]);
 
-  //upload to firebase
   const handleEditProfile = async () => {
-    if (image === null) {
-      setShowErr(true);
-    } else {
-      try {
+    try {
+      if (
+        nameErr === false &&
+        descErr === false &&
+        locErr === false &&
+        ageErr === false &&
+        genderErr === false
+      ) {
+        console.log(nameErr);
         setUploading(true);
         const userSnapShot = await firestore()
           .collection('Users')
@@ -83,100 +111,55 @@ const EditProfile = props => {
           .get();
         if (!userSnapShot.empty) {
           const userRef = userSnapShot.docs[0].ref;
-          updatedName !== ''
-            ? await userRef.update({
-                Username: updatedName,
-              })
-            : await userRef.update({
-                Username: userData.Username,
-              });
-          Location !== ''
-            ? await userRef.update({
-                Location : Location,
-              })
-            : await userRef.update({
-                Location : userData.Location,
-              });
-          console.log('Username updated');
+          await userRef.update({Username: updatedName});
+          await userRef.update({Location: Location});
+          await userRef.update({desc: desc});
+          await userRef.update({age: age});
+          userData && userData.Role.trim() !== 'Organization' && await userRef.update({gender: gender});
         }
-
-        const reference = storage().ref(currentUser ? userData.Useremail : '');
-
-        let pathToFile = '';
-
         if (image !== null) {
-          pathToFile = image.assets[0].uri;
-        }
-
-        if (image !== null) {
+          const reference = storage().ref(
+            currentUser ? userData.Useremail : '',
+          );
+          let pathToFile = image.assets[0].uri;
           await reference.putFile(pathToFile);
-        } else {
-          await reference.putFile(profileImg);
         }
-
-        console.log('Image uploaded successfully');
         setImage(null);
         setUploading(false);
-        navigation.navigate('Profile' , {email : currentUser.email})
-      } catch (err) {
-        console.error('Error uploading image:', err);
-        setUploading(false);
+        navigation.navigate('Profile', {email: currentUser.email});
       }
+    } catch (err) {
+      console.error('Error uploading image:', err);
+      setUploading(false);
     }
   };
-
   return (
-    <View style={styles.container}>
-      {uploading ? (
-        <Loader />
-      ) : (
-        <View style={styles.container}>
-          <TouchableOpacity
-            onPress={() => props.navigation.navigate('Profile' , {email : currentUser.email})}>
-            <Text
-              style={{
-                fontWeight: '100',
-                fontSize: 15,
-                color: 'lightgray',
-                marginLeft: -150,
-              }}>
-              Back
-            </Text>
-          </TouchableOpacity>
-          <ScrollView style={styles.scrollview}>
-            <TouchableOpacity onPress={pickImage} style={{marginLeft: 68}}>
+    <View style={{height: '100%', backgroundColor: 'white'}}>
+      <TouchableOpacity
+        style={{paddingTop: 20, paddingHorizontal: 20}}
+        onPress={() =>
+          props.navigation.navigate('Profile', {email: currentUser.email})
+        }>
+        <FastImage
+          source={require('../assets/back.png')}
+          style={{width: 20, height: 20, alignItems: 'flex-start'}}
+          resizeMode={FastImage.resizeMode.cover}
+        />
+      </TouchableOpacity>
+      <ScrollView style={styles.container}>
+        {uploading ? (
+          <Loader />
+        ) : (
+          <View style={styles.content}>
+            <TouchableOpacity onPress={pickImage}>
               {image ? (
-                <Image
-                  source={{uri: image.assets[0].uri}}
-                  style={{
-                    width: 180,
-                    height: 180,
-                    borderRadius: 100,
-                    borderWidth: 2,
-                    borderColor: 'black',
-                  }}
-                />
+                <Image source={{uri: image.assets[0].uri}} style={styles.img} />
               ) : profileImg ? (
-                <Image
-                  source={{uri: profileImg}}
-                  style={{
-                    width: 180,
-                    height: 180,
-                    borderRadius: 100,
-                    borderWidth: 2,
-                    borderColor: 'black',
-                  }}
-                />
+                <Image source={{uri: profileImg}} style={styles.img} />
               ) : (
                 <Image
-                  source={require('../assets/hero1.jpg')}
-                  style={{
-                    width: 180,
-                    height: 180,
-                    borderRadius: 100,
-                    borderWidth: 2,
-                    borderColor: 'black',
-                  }}
+                  source={require('../assets/profile.png')}
+                  style={styles.img}
                 />
               )}
               <View>
@@ -189,17 +172,23 @@ const EditProfile = props => {
             </TouchableOpacity>
             <View style={styles.form}>
               <TextInput
-                style={styles.input}
-                placeholder={`${currentUser && userData && userData.Username}`}
+                style={[
+                  styles.input,
+                  nameErr && {borderColor: 'red', borderWidth: 1},
+                ]}
+                placeholder={`Enter your name`}
                 placeholderTextColor="gray"
                 value={updatedName}
-                maxLength={20}
+                maxLength={25}
                 onChangeText={text => {
                   setUpdatedName(text);
                 }}
               />
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  locErr && {borderColor: 'red', borderWidth: 1},
+                ]}
                 placeholder={`Enter your Location`}
                 placeholderTextColor="gray"
                 value={Location}
@@ -209,19 +198,77 @@ const EditProfile = props => {
                 }}
               />
               <TextInput
+                style={[
+                  styles.input,
+                  {height: 140},
+                  descErr && {borderColor: 'red', borderWidth: 1},
+                ]}
+                placeholder={`Enter your Description`}
+                placeholderTextColor="gray"
+                value={desc}
+                maxLength={400}
+                multiline={true}
+                numberOfLines={5}
+                onChangeText={text => {
+                  setDesc(text);
+                }}
+              />
+              {userData && userData.Role.trim() !== 'Organization' ? (
+                <TextInput
+                  style={[
+                    styles.input,
+                    ageErr && {borderColor: 'red', borderWidth: 1},
+                  ]}
+                  placeholder={`Enter your Age`}
+                  placeholderTextColor="gray"
+                  value={age}
+                  maxLength={20}
+                  onChangeText={text => {
+                    setAge(text);
+                  }}
+                />
+              ) : (
+                <TextInput
+                  style={[
+                    styles.input,
+                    ageErr && {borderColor: 'red', borderWidth: 1},
+                  ]}
+                  placeholder={`Year Established?`}
+                  placeholderTextColor="gray"
+                  value={age}
+                  maxLength={20}
+                  onChangeText={text => {
+                    setAge(text);
+                  }}
+                />
+              )}
+              {userData && userData.Role.trim() !== 'Organization' && (
+                <TextInput
+                  style={[
+                    styles.input,
+                    genderErr && {borderColor: 'red', borderWidth: 1},
+                  ]}
+                  placeholder={`Enter your Gender`}
+                  placeholderTextColor="gray"
+                  value={gender}
+                  maxLength={20}
+                  onChangeText={text => {
+                    setGender(text);
+                  }}
+                />
+              )}
+              <TextInput
                 style={styles.input}
                 value={currentUser && userData && userData.Useremail}
                 editable={false}
               />
             </View>
-          </ScrollView>
-          <TouchableOpacity
-            style={[styles.button, styles.signUpButton, {width: '60%'}]}
-            onPress={handleEditProfile}>
-            <Text style={{fontWeight: '900', fontSize: 15}}>Save Profile</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+            <TouchableOpacity style={[styles.btn]} onPress={handleEditProfile}>
+              <Text style={styles.btntext}>Save Profile</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 };
@@ -233,43 +280,55 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 10,
     backgroundColor: 'white',
-    alignItems: 'center',
   },
-  scrollview: {
+  content: {
+    display: 'flex',
     flexDirection: 'column',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   form: {
+    width: '100%',
     marginTop: 40,
     flexDirection: 'column',
-    gap: 10,
+    alignItems: 'center',
+    gap: 12,
   },
   element: {
     marginTop: -10,
     flexDirection: 'column',
     gap: 7,
   },
-  inputelement: {
-    borderWidth: 0.4,
-    borderRadius: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   input: {
     color: 'black',
-    borderWidth: 0.5,
-    width: 320,
+    borderWidth: 0.2,
+    width: '96%',
     paddingLeft: 20,
+    borderColor: 'gray',
+    borderRadius: 5,
+    height: 50,
   },
-  button: {
-    width: '100%',
-    padding: 12,
-    borderRadius: 20,
-    marginBottom: 10,
-    marginTop: 20,
+  btn: {
+    width: '60%',
+    height: 36,
+    borderWidth: 1,
+    borderColor: 'black',
+    borderRadius: 3,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'black',
+    marginTop: 20,
   },
-  signUpButton: {
-    backgroundColor: '#57DDFB',
+  btntext: {
+    fontSize: 14,
+    color: 'white',
+    fontWeight: '500',
+  },
+  img: {
+    width: 100,
+    height: 100,
+    borderRadius: 100,
+    borderWidth: 0.3,
+    borderColor: 'black',
   },
 });

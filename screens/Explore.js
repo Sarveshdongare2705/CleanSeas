@@ -10,23 +10,28 @@ import {
   RefreshControl,
   TextInput,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 import BottomNavigation from '../components/BottomNavigation';
-import {useNavigation} from '@react-navigation/native';
+import {useIsFocused, useNavigation} from '@react-navigation/native';
+import Event from '../components/Event';
+import {colors} from '../Colors';
 
 const Explore = props => {
   const navigation = useNavigation();
   const [currentUser, setCurrentUser] = useState(null);
-  const [refreshing, setRefreshing] = useState(false);
   const [events, setEvents] = useState([]);
   const [completedEvents, setCompletedEvents] = useState([]);
   const [orgs, setOrgs] = useState([]);
   const [search, setSearch] = useState('');
   const [searcherr, showSearchErr] = useState(false);
   const [searching, setSearching] = useState(false);
+  const isFocused = useIsFocused();
+  const [loading, setLoading] = useState(false);
+  const [text, setText] = useState('');
 
   const getEvents = async () => {
     try {
@@ -99,7 +104,6 @@ const Explore = props => {
       console.error(err);
     }
   };
-
   const getOrgs = async () => {
     try {
       const data = 'Organization';
@@ -129,8 +133,10 @@ const Explore = props => {
   };
   const handleSearch = async searchVal => {
     if (searchVal.trim() !== '') {
+      setText('Searching Events in ' + searchVal);
       setSearching(true);
       try {
+        setLoading(true);
         const eventsSnapshot = await firestore()
           .collection('Events')
           .where('City', '>=', searchVal.trim())
@@ -160,43 +166,36 @@ const Explore = props => {
             eventsData.push(eventData);
           }),
         );
+        setText('Search Results');
+        setLoading(false);
         setEvents(eventsData);
       } catch (err) {
         console.error(err);
       }
     } else {
       setSearching(false);
+      setText('');
       getEvents();
     }
   };
 
   useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged(user => {
-      if (user) {
-        setCurrentUser(user);
-        getEvents();
-        getCompletedEvents(user);
-        setSearching(false);
-        setSearch('');
-        setEvents([]);
-        getOrgs();
-      } else {
-        setCurrentUser(null);
-      }
-    });
-    return unsubscribe;
-  }, []);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await getEvents();
-    getOrgEvents();
-    await getOrgs();
-    await getCompletedEvents();
-    setRefreshing(false);
-  };
-
-  console.log('Orgs', completedEvents);
+    const fetchData = async () => {
+      const user = await auth().currentUser;
+      setLoading(false);
+      setCurrentUser(user);
+      getEvents();
+      getCompletedEvents(user);
+      setSearching(false);
+      setSearch('');
+      getOrgs();
+    };
+    if (isFocused) {
+      fetchData();
+    }
+    const intervalId = setInterval(fetchData, 600000);
+    return () => clearInterval(intervalId);
+  }, [isFocused]);
 
   return (
     <View
@@ -205,19 +204,7 @@ const Explore = props => {
         {flexDirection: 'column', justifyContent: 'space-between'},
       ]}>
       <View>
-      <StatusBar backgroundColor="#0077be" barStyle="dark-content" />
-      <View style={{backgroundColor: '#0077be'}}>
-        <Text
-          style={{
-            color: 'white',
-            fontSize: 18,
-            marginTop: 10,
-            textAlign: 'center',
-            marginBottom: 10,
-          }}>
-          Explore
-        </Text>
-      </View>
+        <StatusBar backgroundColor="white" barStyle="dark-content" />
         <View style={{flexDirection: 'row', alignItems: 'center', gap: -5}}>
           <View
             style={{
@@ -266,22 +253,18 @@ const Explore = props => {
                   margin: 10,
                   backgroundColor: 'white',
                   textAlign: 'center',
-                  color: '#57DDFB',
+                  color: colors.aquaBlue,
                   borderRadius: 20,
                   fontSize: 13,
                   borderWidth: 0.5,
-                  borderColor: '#57DDFB',
+                  borderColor: colors.aquaBlue,
                 }}>
                 Search
               </Text>
             </View>
           </TouchableOpacity>
         </View>
-        <ScrollView
-          style={{height: 570}}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }>
+        <ScrollView style={{height : '84%'}}>
           <View>
             <Text
               style={{
@@ -291,168 +274,25 @@ const Explore = props => {
                 marginTop: -10,
                 marginBottom: -10,
               }}>
-              {!searching ? 'All Events' : 'Search Results'}
+              {searching ? text : 'Upcoming Events'}
             </Text>
           </View>
-          <ScrollView horizontal style={{margin: 10}}>
-            {events.map(event => (
-              <View
-                key={event.id}
-                style={{
-                  borderWidth: 0.3,
-                  borderColor: 'gray',
-                  width: 230,
-                  height: 260,
-                  marginRight: 10,
-                }}>
-                {event && (
-                  <Image
-                    source={{uri: event.uri2}}
-                    style={{
-                      position: 'absolute',
-                      top: 7,
-                      width: 36,
-                      height: 36,
-                      zIndex: 999,
-                      right: 7,
-                      borderRadius: 100,
-                    }}
-                  />
-                )}
-                {event && event.finished == true ? (
-                  <Image
-                    source={require('../assets/red.png')}
-                    style={{
-                      position: 'absolute',
-                      top: 7,
-                      width: 12,
-                      height: 12,
-                      zIndex: 999,
-                      left: 7,
-                      borderRadius: 100,
-                    }}
-                  />
-                )
-                :
-                (
-                  <Image
-                    source={require('../assets/green.png')}
-                    style={{
-                      position: 'absolute',
-                      top: 7,
-                      width: 12,
-                      height: 12,
-                      zIndex: 999,
-                      left: 7,
-                      borderRadius: 100,
-                    }}
-                  />
-                )
-              }
-                {event.uri && (
-                  <Image
-                    source={{uri: event.uri}}
-                    style={{
-                      width: 230,
-                      height: 138,
-                      padding: 10,
-                      objectFit: 'cover',
-                    }}
-                  />
-                )}
-                <View style={{padding: 5}}>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      gap: 3,
-                      alignItems: 'center',
-                      height: 38,
-                    }}>
-                    <Image
-                      source={require('../assets/title.png')}
-                      style={{width: 16, height: 16, alignItems: 'center'}}
-                    />
-                    <Text
-                      style={{
-                        color: 'black',
-                        fontWeight: 'bold',
-                        fontSize: 13,
-                        width: 200,
-                      }}>
-                      {event.Title}
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      gap: 50,
-                      alignItems: 'center',
-                    }}>
-                    <View style={{flexDirection: 'row', marginTop: 7, gap: 7}}>
-                      <Image
-                        source={require('../assets/date.png')}
-                        style={{width: 16, height: 16}}
-                      />
-                      <Text style={{color: 'black', fontSize: 12}}>
-                        {event.Date}
-                      </Text>
-                    </View>
-                    <View style={{flexDirection: 'row', marginTop: 7, gap: 7}}>
-                      <Image
-                        source={require('../assets/time.png')}
-                        style={{width: 16, height: 16}}
-                      />
-                      <Text style={{color: 'black', fontSize: 12}}>
-                        {event.Time}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        marginTop: 7,
-                        gap: 7,
-                        width: 115,
-                      }}>
-                      <Image
-                        source={require('../assets/location.png')}
-                        style={{width: 16, height: 16}}
-                      />
-                      <Text style={{color: 'black', fontSize: 12}}>
-                        {event.City}
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      style={{
-                        width: 100,
-                        color: 'white',
-                        backgroundColor: 'black',
-                        alignItems: 'center',
-                        height: 30,
-                        paddingTop: 5,
-                        marginTop: 15,
-                        marginRight: 5,
-                      }}
-                      onPress={() =>
-                        props.navigation.navigate('EventDetails', {
-                          id: event.id,
-                        })
-                      }>
-                      <Text
-                        style={{
-                          textAlign: 'center',
-                          fontWeight: 'bold',
-                          color: 'white',
-                        }}>
-                        Check Details
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
+          {loading ? (
+            <View
+              style={{
+                height: '40.5%',
+                alignItems: 'center',
+                paddingTop: '25%',
+              }}>
+              <ActivityIndicator size="large" color={colors.aquaBlue} />
+            </View>
+          ) : (
+            <ScrollView horizontal style={{margin: 10}}>
+              {events.map(event => (
+                <Event event={event} />
+              ))}
+            </ScrollView>
+          )}
           <View>
             <Text
               style={{
@@ -467,147 +307,7 @@ const Explore = props => {
           </View>
           <ScrollView horizontal style={{margin: 10}}>
             {completedEvents.map(event => (
-              <View
-                key={event.id}
-                style={{
-                  borderWidth: 0.3,
-                  borderColor: 'gray',
-                  width: 230,
-                  height: 260,
-                  marginRight: 10,
-                }}>
-                {event.uri && (
-                  <Image
-                    source={{uri: event.uri}}
-                    style={{
-                      width: 230,
-                      height: 138,
-                      padding: 10,
-                      objectFit: 'cover',
-                    }}
-                  />
-                )}
-                {event && event.finished == true ? (
-                  <Image
-                    source={require('../assets/red.png')}
-                    style={{
-                      position: 'absolute',
-                      top: 7,
-                      width: 12,
-                      height: 12,
-                      zIndex: 999,
-                      left: 7,
-                      borderRadius: 100,
-                    }}
-                  />
-                )
-                :
-                (
-                  <Image
-                    source={require('../assets/green.png')}
-                    style={{
-                      position: 'absolute',
-                      top: 7,
-                      width: 12,
-                      height: 12,
-                      zIndex: 999,
-                      left: 7,
-                      borderRadius: 100,
-                    }}
-                  />
-                )
-              }
-                <View style={{padding: 5}}>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      gap: 3,
-                      alignItems: 'center',
-                      height: 38,
-                    }}>
-                    <Image
-                      source={require('../assets/title.png')}
-                      style={{width: 16, height: 16, alignItems: 'center'}}
-                    />
-                    <Text
-                      style={{
-                        color: 'black',
-                        fontWeight: 'bold',
-                        fontSize: 13,
-                        width: 200,
-                      }}>
-                      {event.Title}
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      gap: 50,
-                      alignItems: 'center',
-                    }}>
-                    <View style={{flexDirection: 'row', marginTop: 7, gap: 7}}>
-                      <Image
-                        source={require('../assets/date.png')}
-                        style={{width: 16, height: 16}}
-                      />
-                      <Text style={{color: 'black', fontSize: 12}}>
-                        {event.Date}
-                      </Text>
-                    </View>
-                    <View style={{flexDirection: 'row', marginTop: 7, gap: 7}}>
-                      <Image
-                        source={require('../assets/time.png')}
-                        style={{width: 16, height: 16}}
-                      />
-                      <Text style={{color: 'black', fontSize: 12}}>
-                        {event.Time}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        marginTop: 7,
-                        gap: 7,
-                        width: 115,
-                      }}>
-                      <Image
-                        source={require('../assets/location.png')}
-                        style={{width: 16, height: 16}}
-                      />
-                      <Text style={{color: 'black', fontSize: 12}}>
-                        {event.City}
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      style={{
-                        width: 100,
-                        color: 'white',
-                        backgroundColor: 'black',
-                        alignItems: 'center',
-                        height: 30,
-                        paddingTop: 5,
-                        marginTop: 15,
-                        marginRight: 5,
-                      }}
-                      onPress={() =>
-                        props.navigation.navigate('EventDetails', {
-                          id: event.id,
-                        })
-                      }>
-                      <Text
-                        style={{
-                          textAlign: 'center',
-                          fontWeight: 'bold',
-                          color: 'white',
-                        }}>
-                        Check Details
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
+              <Event event={event} />
             ))}
           </ScrollView>
           {orgs && (
@@ -625,81 +325,72 @@ const Explore = props => {
               </Text>
             </View>
           )}
-          <View style={{paddingTop: 7}}>
+          <ScrollView horizontal style={{paddingTop: 7}}>
             {orgs.map(org => (
-              <TouchableOpacity
+              <View
                 key={org.id}
-                onPress={() => {
-                  navigation.navigate('Profile', {email: org.Useremail});
+                style={{
+                  borderWidth: 0.5,
+                  borderColor: 'lightgray',
+                  width: 170,
+                  height: 180,
+                  flexDirection: 'column',
+                  margin: 5,
+                  borderRadius: 20,
+                  alignItems: 'center',
+                  gap: 20,
                 }}>
-                <View
-                  key={org.id}
-                  style={{
-                    borderWidth: 0.5,
-                    borderColor: 'lightgray',
-                    width: '97%',
-                    height: 70,
-                    marginRight: 10,
-                    flexDirection: 'row',
-                    margin: 5,
-                    borderRadius: 20,
-                    paddingLeft: 10,
-                    gap: 5,
-                    alignItems: 'center',
-                  }}>
-                  {org && (
-                    <Image
-                      source={{uri: org.uri}}
+                {org && (
+                  <Image
+                    source={{uri: org.uri}}
+                    style={{
+                      top: 7,
+                      width: 80,
+                      height: 80,
+                      borderRadius: 100,
+                    }}
+                  />
+                )}
+                <View>
+                  <View
+                    style={{
+                      flexDirection: 'column',
+                      gap: 20,
+                      alignItems: 'center',
+                    }}>
+                    <Text
                       style={{
-                        marginTop: -14,
-                        top: 7,
-                        width: 50,
-                        height: 50,
-                        borderRadius: 100,
-                      }}
-                    />
-                  )}
-                  <View style={{padding: 5}}>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        gap: 3,
-                        alignItems: 'center',
-                        height: 38,
+                        color: 'black',
+                        fontSize: 16,
+                        width: 150,
+                        textAlign: 'center',
                       }}>
-                      <View>
-                        <Text
-                          style={{
-                            color: 'black',
-                            fontSize: 17,
-                            width: 270,
-                          }}>
-                          {org.Username}
-                        </Text>
-                        <Text
-                          style={{
-                            color: 'gray',
-                            fontSize: 12,
-                            width: 270,
-                          }}>
-                          {'Check our profile'}
-                        </Text>
-                      </View>
-                    </View>
-                    <View
+                      {org.Username}
+                    </Text>
+                    <TouchableOpacity
                       style={{
-                        flexDirection: 'row',
-                        gap: 50,
+                        padding: 5,
+                        width: '100%',
+                        backgroundColor: colors.sandyBeige,
+                        borderRadius: 13,
                         alignItems: 'center',
-                      }}></View>
+                      }}
+                      onPress={() => {
+                        navigation.navigate('Profile', {email: org.Useremail});
+                      }}>
+                      <Text style={{color: 'black'}}>Check Profile</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
-              </TouchableOpacity>
+              </View>
             ))}
-          </View>
+          </ScrollView>
         </ScrollView>
       </View>
-      <BottomNavigation />
+      <View
+        style={{position: 'absolute', bottom: '0%', left: '3%', right: '3%'}}>
+        <BottomNavigation />
+      </View>
     </View>
   );
 };

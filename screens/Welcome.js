@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StatusBar,
 } from 'react-native';
+import { colors } from '../Colors';
 
 const Welcome = props => {
   const [typedText, setTypedText] = useState('');
@@ -44,7 +45,7 @@ const Welcome = props => {
             <TouchableOpacity
               style={[styles.button, styles.signUpButton]}
               onPress={() => props.navigation.navigate('Signup')}>
-              <Text style={[styles.buttonText, {color: '#57DDFB'}]}>
+              <Text style={[styles.buttonText, {color: 'black'}]}>
                 Sign Up
               </Text>
             </TouchableOpacity>
@@ -96,14 +97,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   signInButton: {
-    backgroundColor: '#57DDFB',
+    backgroundColor: 'black',
   },
   signUpButton: {
     backgroundColor: 'white',
   },
   buttonText: {
-    fontSize: 15,
-    fontWeight: '900',
+    fontSize: 16,
   },
 });
 

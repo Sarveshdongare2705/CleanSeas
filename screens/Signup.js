@@ -15,6 +15,7 @@ import auth from '@react-native-firebase/auth';
 import {useFocusEffect} from '@react-navigation/native';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
+import {colors} from '../Colors';
 
 const Signup = props => {
   const [email, setEmail] = useState('');
@@ -26,6 +27,9 @@ const Signup = props => {
   const [showPassword, setShowPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState('');
   const [roleErr, setRoleErr] = useState('');
+  const [err, showErr] = useState(false);
+  const [success, showSuccess] = useState(false);
+  const [errmsg, setErrmsg] = useState('');
 
   useFocusEffect(
     React.useCallback(() => {
@@ -37,6 +41,9 @@ const Signup = props => {
       setPasswordErr('');
       setSelectedRole('');
       setRoleErr('');
+      setErrmsg('');
+      showErr(false);
+      showSuccess(false);
     }, []),
   );
 
@@ -75,44 +82,111 @@ const Signup = props => {
             .then(() => {
               console.log('User data added');
             });
-          Alert.alert('Signup Successful', 'You have signed up successfully.');
-          setTimeout(() => {
-            props.navigation.navigate('Login');
-          }, 1000);
         }
+        showErr(false);
+        showSuccess(true);
+        setTimeout(() => {
+          props.navigation.navigate('Login');
+        }, 500);
       } catch (error) {
         console.log('Sign up error:', error);
         let errorMessage = 'Failed to sign up. Please try again.';
         if (error.code === 'auth/email-already-in-use') {
           errorMessage =
-            'The email address is already in use by another account.';
+            'Email already in use.';
         }
         if (error.code === 'auth/weak-password') {
-          errorMessage = 'Password is weak.Create a stronger password';
+          errorMessage = 'Password is weak.';
         }
         if (error.code === 'auth/invalid-email') {
           errorMessage = 'Entered email is invalid';
         }
-        Alert.alert('Sign Up Failed', errorMessage);
+        setErrmsg(errorMessage);
+        showSuccess(false);
+        showErr(true);
       }
     }
   };
   return (
     <ScrollView>
-      <StatusBar backgroundColor="black" barStyle="light-content" />
+      <StatusBar backgroundColor="white" barStyle="dark-content" />
       <View style={[styles.container]}>
+      {err && (
+          <View
+            style={{
+              backgroundColor: colors.errorRed,
+              color: 'white',
+              width: '107%',
+              height: '6%',
+              position: 'absolute',
+              top: '1%',
+              left: '2%',
+              right : '2%',
+              borderRadius: 10,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems : 'center',
+              padding : 10,
+              paddingTop : 8,
+            }}>
+            <Text
+              style={{
+                color: 'white',
+                fontSize: 15,
+              }}>
+              {errmsg}
+            </Text>
+            <TouchableOpacity onPress={() => showErr(false)}>
+              <Image
+                source={require('../assets/cross.png')}
+                style={{width: 20, height: 20}}
+              />
+            </TouchableOpacity>
+          </View>
+        )}
+        {success && (
+          <View
+            style={{
+              backgroundColor: colors.successGreen,
+              color: 'white',
+              width: '107%',
+              height: '6%',
+              position: 'absolute',
+              top: '1%',
+              left: '2%',
+              borderRadius: 10,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+            }}>
+            <Text
+              style={{
+                color: 'white',
+                fontSize: 16,
+                padding: '2%',
+                paddingLeft: 20,
+              }}>
+              Sign Up successful !
+            </Text>
+          </View>
+        )}
         <View>
           <Text
             style={{
-              color: '#57DDFB',
+              color: colors.aquaBlue,
               fontWeight: '900',
-              fontSize: 36,
-              marginTop: 60,
+              fontSize: 40,
+              marginTop: '15%',
             }}>
             Sign Up
           </Text>
           <Text
-            style={{color: 'gray', opacity: 0.5, fontSize: 20, marginTop: 3}}>
+            style={{
+              color: 'gray',
+              opacity: 0.5,
+              fontSize: 20,
+              marginTop: 5,
+              marginBottom: 20,
+            }}>
             Join Hands for a cleaner ocean.
           </Text>
         </View>
@@ -122,7 +196,7 @@ const Signup = props => {
             <View style={styles.inputelement}>
               <Image
                 source={require('../assets/email.png')}
-                style={{width: 20, height: 20, margin: 10}}
+                style={{width: '7%', height: '45%', margin: '3%'}}
               />
               <TextInput
                 placeholder="Enter your email"
@@ -139,7 +213,7 @@ const Signup = props => {
             <View style={styles.inputelement}>
               <Image
                 source={require('../assets/user.png')}
-                style={{width: 20, height: 20, margin: 10}}
+                style={{width: '7%', height: '45%', margin: '3%'}}
               />
               <TextInput
                 placeholder="Enter your name"
@@ -156,7 +230,7 @@ const Signup = props => {
             <View style={styles.inputelement}>
               <Image
                 source={require('../assets/password.png')}
-                style={{width: 20, height: 20, margin: 10}}
+                style={{width: '7%', height: '45%', margin: '3%'}}
               />
               <TextInput
                 placeholder="Enter your password"
@@ -173,7 +247,7 @@ const Signup = props => {
                       ? require('../assets/showpassword.png')
                       : require('../assets/hidepassword.png')
                   }
-                  style={{width: 20, height: 20, margin: 10}}
+                  style={{width: 20, height: 20, margin: '5%'}}
                 />
               </TouchableOpacity>
             </View>
@@ -184,7 +258,7 @@ const Signup = props => {
             <View style={styles.inputelement}>
               <Image
                 source={require('../assets/role.png')}
-                style={{width: 20, height: 20, margin: 12}}
+                style={{width: '7%', height: '45%', margin: '3%'}}
               />
               <TextInput
                 placeholder="Individual or Organization ?"
@@ -199,20 +273,21 @@ const Signup = props => {
           <TouchableOpacity
             style={[styles.button, styles.signUpButton, {marginTop: 0}]}
             onPress={handleSignUp}>
-            <Text style={{fontWeight: '900', fontSize: 15}}>Sign Up</Text>
+            <Text style={{fontSize: 16, color: 'black'}}>Sign Up</Text>
           </TouchableOpacity>
           <View
             style={{
               flexDirection: 'row',
               gap: 3,
-              marginTop: -20,
+              marginTop: -25,
               alignItems: 'center',
               justifyContent: 'center',
+              marginBottom: 60,
             }}>
-            <Text style={{color: 'black'}}>Already have an Account ? </Text>
+            <Text style={{color: 'black'}}>Already have an Account? </Text>
             <TouchableOpacity
               onPress={() => props.navigation.navigate('Login')}>
-              <Text style={{fontWeight: '900', fontSize: 15, color: '#57DDFB'}}>
+              <Text style={{fontSize: 15, color: colors.aquaBlue}}>
                 Sign In
               </Text>
             </TouchableOpacity>
@@ -227,11 +302,13 @@ export default Signup;
 
 const styles = StyleSheet.create({
   container: {
-    margin: 20,
+    backgroundColor: 'white',
+    padding: '5%',
   },
   title: {
-    color: 'black',
-    fontSize: 18,
+    color: colors.sandyBeige,
+    fontSize: 15,
+    fontWeight: 'bold',
   },
   form: {
     marginTop: 40,
@@ -239,7 +316,7 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   element: {
-    marginTop: -20,
+    marginTop: '-10%',
     flexDirection: 'column',
     gap: 7,
   },
@@ -258,23 +335,19 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 15,
     borderRadius: 20,
-    marginBottom: 10,
-    marginTop: 20,
+    marginBottom: '5%',
+    marginTop: '5%',
     alignItems: 'center',
     justifyContent: 'center',
   },
   signUpButton: {
-    backgroundColor: '#57DDFB',
-  },
-  buttonText: {
-    fontSize: 15,
-    fontWeight: '900',
+    backgroundColor: colors.sandyBeige,
   },
   err: {
     fontWeight: '900',
     opacity: 0.8,
     fontSize: 10,
-    color: 'red',
+    color: colors.errorRed,
     textAlign: 'right',
     paddingRight: 10,
   },

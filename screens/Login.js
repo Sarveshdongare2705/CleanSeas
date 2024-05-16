@@ -8,25 +8,32 @@ import {
   ScrollView,
   Alert,
   StatusBar,
+  Animated,
 } from 'react-native';
-import React, {useState} from 'react';
+import React, {useRef, useState} from 'react';
 import auth from '@react-native-firebase/auth';
-import { useFocusEffect } from '@react-navigation/native';
+import {useFocusEffect} from '@react-navigation/native';
+import {colors} from '../Colors';
 
-const Login = (props) => {
+const Login = props => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [emailerr, setEmailErr] = useState('');
   const [passworderr, setPasswordErr] = useState('');
+  const [err, showErr] = useState(false);
+  const [success, showSuccess] = useState(false);
   useFocusEffect(
     React.useCallback(() => {
       setEmail('');
       setPassword('');
       setEmailErr('');
       setPasswordErr('');
+      showErr(false);
+      showSuccess(false);
     }, []),
   );
+
   const handleSignIn = async () => {
     if (email == '') {
       setEmailErr('Email cannot be empty');
@@ -44,48 +51,100 @@ const Login = (props) => {
           email,
           password,
         );
-        // Signed in
-        console.log('User signed in:', userCredential.user);
-        props.navigation.navigate('Home');
+        showErr(false);
+        showSuccess(true); 
+        setTimeout(() => {
+          props.navigation.navigate('Home');
+        }, 500);
       } catch (error) {
         console.log('Sign up error:', error);
-        let errorMessage = 'Failed to sign In. Please try again.';
-        if (error.code === 'auth/invalid-credential') {
-          errorMessage =
-            'Entered credentials are invalid';
-        }
-        Alert.alert('Sign Up Failed', errorMessage);
+        showSuccess(false);
+        showErr(true);
       }
     }
   };
   return (
     <ScrollView>
-      <StatusBar backgroundColor="black" barStyle="light-content" />
+      <StatusBar backgroundColor="white" barStyle="dark-content" />
       <View style={styles.container}>
-        <TouchableOpacity onPress={() => props.navigation.navigate('Welcome')}>
-          <Text
+        {err && (
+          <View
             style={{
-              fontWeight: '100',
-              fontSize: 15,
-              color: 'lightgray',
-              marginTop: 20,
-              marginBottom: -20,
+              backgroundColor:colors.errorRed,
+              color: 'white',
+              width: '107%',
+              height: '6%',
+              position: 'absolute',
+              top: '1%',
+              left: '2%',
+              right : '2%',
+              borderRadius: 10,
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems : 'center',
+              padding : 10,
+              paddingTop : 8,
             }}>
-            Back
-          </Text>
-        </TouchableOpacity>
+            <Text
+              style={{
+                color: 'white',
+                fontSize: 16,
+              }}>
+              Invalid Credentials
+            </Text>
+            <TouchableOpacity onPress={() => showErr(false)}>
+              <Image
+                source={require('../assets/cross.png')}
+                style={{width: 20, height: 20}}
+              />
+            </TouchableOpacity>
+          </View>
+        )}
+        {success && (
+          <View
+          style={{
+            backgroundColor:colors.successGreen,
+            color: 'white',
+            width: '107%',
+            height: '6%',
+            position: 'absolute',
+            top: '1%',
+            left: '2%',
+            right : '2%',
+            borderRadius: 10,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems : 'center',
+            padding : 10,
+            paddingTop : 8,
+          }}>
+            <Text
+              style={{
+                color: 'white',
+                fontSize: 16,
+              }}>
+              Login successful !
+            </Text>
+          </View>
+        )}
         <View>
           <Text
             style={{
-              color: '#57DDFB',
+              color: colors.aquaBlue,
               fontWeight: '900',
-              fontSize: 36,
-              marginTop: 60,
+              fontSize: 40,
+              marginTop: '15%',
             }}>
             Sign In
           </Text>
           <Text
-            style={{color: 'gray', opacity: 0.5, fontSize: 20, marginTop: 3}}>
+            style={{
+              color: 'gray',
+              opacity: 0.5,
+              fontSize: 20,
+              marginTop: 5,
+              marginBottom: 20,
+            }}>
             Join Hands for a cleaner ocean.
           </Text>
         </View>
@@ -95,7 +154,7 @@ const Login = (props) => {
             <View style={styles.inputelement}>
               <Image
                 source={require('../assets/email.png')}
-                style={{width: 20, height: 20, margin: 10}}
+                style={{width: '7%', height: '45%', margin: '3%'}}
               />
               <TextInput
                 placeholder="Enter your email"
@@ -112,7 +171,7 @@ const Login = (props) => {
             <View style={styles.inputelement}>
               <Image
                 source={require('../assets/password.png')}
-                style={{width: 20, height: 20, margin: 10}}
+                style={{width: '7%', height: '45%', margin: '3%'}}
               />
               <TextInput
                 placeholder="Enter your password"
@@ -129,7 +188,7 @@ const Login = (props) => {
                       ? require('../assets/showpassword.png')
                       : require('../assets/hidepassword.png')
                   }
-                  style={{width: 20, height: 20, margin: 10}}
+                  style={{width: 20, height: 20, margin: '5%'}}
                 />
               </TouchableOpacity>
             </View>
@@ -138,7 +197,7 @@ const Login = (props) => {
           <TouchableOpacity
             style={[styles.button, styles.signUpButton]}
             onPress={handleSignIn}>
-            <Text style={{fontWeight: '900', fontSize: 15}}>Sign In</Text>
+            <Text style={{fontSize: 15, color: 'black'}}>Sign In</Text>
           </TouchableOpacity>
           <View
             style={{
@@ -147,11 +206,12 @@ const Login = (props) => {
               marginTop: -20,
               alignItems: 'center',
               justifyContent: 'center',
+              marginBottom: 250,
             }}>
             <Text style={{color: 'black'}}>Don't have an Account ? </Text>
             <TouchableOpacity
               onPress={() => props.navigation.navigate('Signup')}>
-              <Text style={{fontWeight: '900', fontSize: 15, color: '#57DDFB'}}>
+              <Text style={{fontSize: 15, color: colors.aquaBlue}}>
                 Sign Up
               </Text>
             </TouchableOpacity>
@@ -165,11 +225,13 @@ const Login = (props) => {
 export default Login;
 const styles = StyleSheet.create({
   container: {
-    margin: 20,
+    backgroundColor: 'white',
+    padding: '5%',
   },
   title: {
-    color: 'black',
-    fontSize: 18,
+    color: colors.sandyBeige,
+    fontSize: 15,
+    fontWeight: 'bold',
   },
   form: {
     marginTop: 40,
@@ -177,6 +239,7 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   element: {
+    marginTop: '-10%',
     flexDirection: 'column',
     gap: 7,
   },
@@ -195,13 +258,13 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 15,
     borderRadius: 20,
-    marginBottom: 10,
-    marginTop: 20,
+    marginBottom: '5%',
+    marginTop: '1%',
     alignItems: 'center',
     justifyContent: 'center',
   },
   signUpButton: {
-    backgroundColor: '#57DDFB',
+    backgroundColor: colors.sandyBeige,
   },
   buttonText: {
     fontSize: 15,
@@ -211,8 +274,8 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     opacity: 0.8,
     fontSize: 10,
-    color: 'red',
-    textAlign : 'right',
-    paddingRight : 10,
+    color: colors.errorRed,
+    textAlign: 'right',
+    paddingRight: 10,
   },
 });

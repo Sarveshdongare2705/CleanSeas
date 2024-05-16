@@ -264,8 +264,8 @@ const Chat = ({route}) => {
                           padding: 9,
                           borderColor: 'lightgray',
                           borderTopLeftRadius: 0,
-                          borderTopRightRadius: 20,
-                          borderBottomRightRadius: 20,
+                          borderTopRightRadius: 30,
+                          borderBottomRightRadius: 30,
                           borderBottomLeftRadius: 20,
                         }}>
                         <View

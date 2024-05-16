@@ -406,21 +406,6 @@ const EventDetails = ({route}) => {
                             alignItems: 'center',
                           }}>
                           <Image
-                            source={require('../assets/location.png')}
-                            style={{width: 20, height: 20}}
-                          />
-                          <Text style={{color: 'black', fontSize: 13}}>
-                            {post.Location}
-                          </Text>
-                        </View>
-                        <View
-                          style={{
-                            flexDirection: 'row',
-                            marginTop: 7,
-                            gap: 7,
-                            alignItems: 'center',
-                          }}>
-                          <Image
                             source={require('../assets/city.png')}
                             style={{width: 20, height: 20}}
                           />
@@ -679,7 +664,12 @@ const EventDetails = ({route}) => {
                                   borderRadius: 100,
                                 }}
                               />
-                              <Text style={{color: 'black', fontSize: 16}}>
+                              <Text
+                                style={{
+                                  color: 'black',
+                                  fontSize: 15,
+                                  width: 145,
+                                }}>
                                 {thought.name}
                               </Text>
                               {currentUser.email === thought.Useremail && (
@@ -692,7 +682,6 @@ const EventDetails = ({route}) => {
                                     style={{
                                       width: 13,
                                       height: 13,
-                                      marginLeft: 27,
                                     }}
                                   />
                                 </TouchableOpacity>
@@ -705,7 +694,12 @@ const EventDetails = ({route}) => {
                                 gap: 10,
                                 paddingLeft: 5,
                               }}>
-                              <Text style={{color: 'black', fontSize: 13}}>
+                              <Text
+                                style={{
+                                  color: 'black',
+                                  fontSize: 13,
+                                  height: 87,
+                                }}>
                                 {thought.Thought}
                               </Text>
                             </View>
@@ -770,16 +764,18 @@ const EventDetails = ({route}) => {
                             }}
                           />
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={handleSubmitThoughts}>
-                          <Image
-                            source={require('../assets/send.png')}
-                            style={{
-                              width: 20,
-                              height: 20,
-                              marginLeft: 20,
-                            }}
-                          />
-                        </TouchableOpacity>
+                        {uploading === false && (
+                          <TouchableOpacity onPress={handleSubmitThoughts}>
+                            <Image
+                              source={require('../assets/send.png')}
+                              style={{
+                                width: 20,
+                                height: 20,
+                                marginLeft: 20,
+                              }}
+                            />
+                          </TouchableOpacity>
+                        )}
                       </View>
                     </View>
                   </View>

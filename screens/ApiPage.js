@@ -27,7 +27,7 @@ const ApiPage = () => {
   const fetchBeaches = async searchTerm => {
     try {
       const response = await fetch(
-        `https://cb7b-49-32-185-172.ngrok-free.app/beaches?country=${searchTerm}`,
+        `https://ae39-2401-4900-1aa6-bd6f-e599-c8f6-d197-5330.ngrok-free.app/beaches?country=${searchTerm}`,
       );
       if (!response.ok) {
         showErr(true)
