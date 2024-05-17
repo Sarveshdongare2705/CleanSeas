@@ -30,6 +30,7 @@ const Signup = props => {
   const [err, showErr] = useState(false);
   const [success, showSuccess] = useState(false);
   const [errmsg, setErrmsg] = useState('');
+  const [showMenu, setShowMenu] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -92,8 +93,7 @@ const Signup = props => {
         console.log('Sign up error:', error);
         let errorMessage = 'Failed to sign up. Please try again.';
         if (error.code === 'auth/email-already-in-use') {
-          errorMessage =
-            'Email already in use.';
+          errorMessage = 'Email already in use.';
         }
         if (error.code === 'auth/weak-password') {
           errorMessage = 'Password is weak.';
@@ -108,65 +108,23 @@ const Signup = props => {
     }
   };
   return (
-    <ScrollView>
+    <View style={[styles.container]}>
       <StatusBar backgroundColor="white" barStyle="dark-content" />
-      <View style={[styles.container]}>
-      {err && (
-          <View
-            style={{
-              backgroundColor: colors.errorRed,
-              color: 'white',
-              width: '107%',
-              height: '6%',
-              position: 'absolute',
-              top: '1%',
-              left: '2%',
-              right : '2%',
-              borderRadius: 10,
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems : 'center',
-              padding : 10,
-              paddingTop : 8,
-            }}>
-            <Text
-              style={{
-                color: 'white',
-                fontSize: 15,
-              }}>
-              {errmsg}
-            </Text>
+      <ScrollView>
+        {err && (
+          <View style={[styles.msg, {backgroundColor: colors.errorRed}]}>
+            <Text style={styles.msgtxt}>{errmsg}</Text>
             <TouchableOpacity onPress={() => showErr(false)}>
               <Image
                 source={require('../assets/cross.png')}
-                style={{width: 20, height: 20}}
+                style={{width: 22, height: 22}}
               />
             </TouchableOpacity>
           </View>
         )}
         {success && (
-          <View
-            style={{
-              backgroundColor: colors.successGreen,
-              color: 'white',
-              width: '107%',
-              height: '6%',
-              position: 'absolute',
-              top: '1%',
-              left: '2%',
-              borderRadius: 10,
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-            }}>
-            <Text
-              style={{
-                color: 'white',
-                fontSize: 16,
-                padding: '2%',
-                paddingLeft: 20,
-              }}>
-              Sign Up successful !
-            </Text>
+          <View style={[styles.msg, {backgroundColor: colors.successGreen}]}>
+            <Text style={styles.msgtxt}>Sign Up successful !</Text>
           </View>
         )}
         <View>
@@ -232,46 +190,106 @@ const Signup = props => {
                 source={require('../assets/password.png')}
                 style={{width: '7%', height: '45%', margin: '3%'}}
               />
-              <TextInput
-                placeholder="Enter your password"
-                onChangeText={text => setPassword(text)}
-                value={password}
-                placeholderTextColor="gray"
-                maxLength={40}
-                secureTextEntry={!showPassword}
-                style={styles.input}></TextInput>
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <Image
-                  source={
-                    showPassword
-                      ? require('../assets/showpassword.png')
-                      : require('../assets/hidepassword.png')
-                  }
-                  style={{width: 20, height: 20, margin: '5%'}}
-                />
-              </TouchableOpacity>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}>
+                <TextInput
+                  placeholder="Enter your password"
+                  onChangeText={text => setPassword(text)}
+                  value={password}
+                  placeholderTextColor="gray"
+                  maxLength={40}
+                  secureTextEntry={!showPassword}
+                  style={styles.input}></TextInput>
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}>
+                  <Image
+                    source={
+                      showPassword
+                        ? require('../assets/showpassword.png')
+                        : require('../assets/hidepassword.png')
+                    }
+                    style={{width: 20, height: 20, marginLeft: 18}}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
             <Text style={styles.err}>{passworderr}</Text>
           </View>
           <View style={styles.element}>
             <Text style={styles.title}>Role</Text>
-            <View style={styles.inputelement}>
+            <View
+              style={[
+                styles.inputelement,
+                {justifyContent: 'space-between', alignItems: 'center'},
+              ]}>
               <Image
                 source={require('../assets/role.png')}
                 style={{width: '7%', height: '45%', margin: '3%'}}
               />
-              <TextInput
-                placeholder="Individual or Organization ?"
-                onChangeText={text => setSelectedRole(text)}
-                value={selectedRole}
-                placeholderTextColor="gray"
-                maxLength={20}
-                style={styles.input}></TextInput>
+              <TouchableOpacity
+                style={[styles.input]}
+                onPress={() => setShowMenu(!showMenu)}>
+                <View
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginRight: 20,
+                  }}>
+                  <TextInput
+                    placeholder={`Individual or Organization ?`}
+                    placeholderTextColor="gray"
+                    value={selectedRole}
+                    maxLength={20}
+                    editable={false}
+                    style={{color: 'black', marginLeft: -40}}
+                  />
+                  <Image
+                    source={
+                      showMenu
+                        ? require('../assets/up.png')
+                        : require('../assets/down.png')
+                    }
+                    style={{width: 13, height: 13, alignItems: 'flex-start'}}
+                  />
+                </View>
+              </TouchableOpacity>
             </View>
+            {showMenu ? (
+              <View style={styles.menu}>
+                <TouchableOpacity
+                  style={styles.opt}
+                  onPress={() => {
+                    setSelectedRole('Individual');
+                    setShowMenu(false);
+                  }}>
+                  <Text style={{color: 'black', marginBottom: -7}}>
+                    Individual
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.opt}
+                  onPress={() => {
+                    setSelectedRole('Organization');
+                    setShowMenu(false);
+                  }}>
+                  <Text style={{color: 'black', marginBottom: -7}}>
+                    Organization
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View></View>
+            )}
             <Text style={styles.err}>{roleErr}</Text>
           </View>
           <TouchableOpacity
-            style={[styles.button, styles.signUpButton, {marginTop: 0}]}
+            style={[styles.button, styles.signUpButton, {marginTop: -15}]}
             onPress={handleSignUp}>
             <Text style={{fontSize: 16, color: 'black'}}>Sign Up</Text>
           </TouchableOpacity>
@@ -293,8 +311,8 @@ const Signup = props => {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 };
 
@@ -303,7 +321,9 @@ export default Signup;
 const styles = StyleSheet.create({
   container: {
     backgroundColor: 'white',
-    padding: '5%',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    height: '100%',
   },
   title: {
     color: colors.sandyBeige,
@@ -322,7 +342,7 @@ const styles = StyleSheet.create({
   },
   inputelement: {
     borderWidth: 0.4,
-    borderRadius: 15,
+    borderRadius: 3,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -334,9 +354,8 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     padding: 15,
-    borderRadius: 20,
+    borderRadius: 3,
     marginBottom: '5%',
-    marginTop: '5%',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -350,5 +369,38 @@ const styles = StyleSheet.create({
     color: colors.errorRed,
     textAlign: 'right',
     paddingRight: 10,
+  },
+  menu: {
+    width: '100%',
+    borderWidth: 0.3,
+    borderColor: 'black',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 3,
+  },
+  opt: {
+    paddingVertical: 15,
+    borderBottomColor: 'lightgray',
+    borderBottomWidth: 0.3,
+  },
+  msg: {
+    color: 'white',
+    width: '100%',
+    height: 40,
+    position: 'absolute',
+    top: '0%',
+    left: '0%',
+    right: '0%',
+    borderRadius: 3,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 10,
+    paddingTop: 8,
+  },
+  msgtxt: {
+    color: 'white',
+    fontSize: 16,
+    paddingLeft: 20,
   },
 });

@@ -86,24 +86,27 @@ const styles = StyleSheet.create({
     marginTop: -10,
   },
   buttons: {
+    flexDirection : 'row',
     alignItems: 'center',
+    justifyContent : 'space-between',
   },
   button: {
-    width: '100%',
-    padding: 15,
-    borderRadius: 20,
+    width: '49%',
+    padding: 10,
+    borderRadius: 3,
     marginBottom: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   signInButton: {
-    backgroundColor: 'black',
+    backgroundColor: colors.aquaBlue,
   },
   signUpButton: {
-    backgroundColor: 'white',
+    backgroundColor: colors.sandyBeige,
   },
   buttonText: {
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight : '500'
   },
 });
 

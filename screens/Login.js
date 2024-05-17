@@ -52,7 +52,7 @@ const Login = props => {
           password,
         );
         showErr(false);
-        showSuccess(true); 
+        showSuccess(true);
         setTimeout(() => {
           props.navigation.navigate('Home');
         }, 500);
@@ -64,69 +64,30 @@ const Login = props => {
     }
   };
   return (
-    <ScrollView>
+    <View style={[styles.container]}>
       <StatusBar backgroundColor="white" barStyle="dark-content" />
-      <View style={styles.container}>
-        {err && (
-          <View
-            style={{
-              backgroundColor:colors.errorRed,
-              color: 'white',
-              width: '107%',
-              height: '6%',
-              position: 'absolute',
-              top: '1%',
-              left: '2%',
-              right : '2%',
-              borderRadius: 10,
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems : 'center',
-              padding : 10,
-              paddingTop : 8,
-            }}>
-            <Text
-              style={{
-                color: 'white',
-                fontSize: 16,
-              }}>
-              Invalid Credentials
-            </Text>
-            <TouchableOpacity onPress={() => showErr(false)}>
-              <Image
-                source={require('../assets/cross.png')}
-                style={{width: 20, height: 20}}
-              />
-            </TouchableOpacity>
-          </View>
-        )}
-        {success && (
-          <View
-          style={{
-            backgroundColor:colors.successGreen,
-            color: 'white',
-            width: '107%',
-            height: '6%',
-            position: 'absolute',
-            top: '1%',
-            left: '2%',
-            right : '2%',
-            borderRadius: 10,
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems : 'center',
-            padding : 10,
-            paddingTop : 8,
-          }}>
-            <Text
-              style={{
-                color: 'white',
-                fontSize: 16,
-              }}>
-              Login successful !
-            </Text>
-          </View>
-        )}
+      {err && (
+        <View
+          style={[styles.msg, {backgroundColor: colors.errorRed, margin: 10}]}>
+          <Text style={styles.msgtxt}>{'Invalid Credentials'}</Text>
+          <TouchableOpacity onPress={() => showErr(false)}>
+            <Image
+              source={require('../assets/cross.png')}
+              style={{width: 22, height: 22}}
+            />
+          </TouchableOpacity>
+        </View>
+      )}
+      {success && (
+        <View
+          style={[
+            styles.msg,
+            {backgroundColor: colors.successGreen, margin: 10},
+          ]}>
+          <Text style={styles.msgtxt}>Sign In successful !</Text>
+        </View>
+      )}
+      <View>
         <View>
           <Text
             style={{
@@ -173,24 +134,27 @@ const Login = props => {
                 source={require('../assets/password.png')}
                 style={{width: '7%', height: '45%', margin: '3%'}}
               />
-              <TextInput
-                placeholder="Enter your password"
-                onChangeText={text => setPassword(text)}
-                value={password}
-                placeholderTextColor="gray"
-                maxLength={40}
-                secureTextEntry={!showPassword}
-                style={styles.input}></TextInput>
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <Image
-                  source={
-                    showPassword
-                      ? require('../assets/showpassword.png')
-                      : require('../assets/hidepassword.png')
-                  }
-                  style={{width: 20, height: 20, margin: '5%'}}
-                />
-              </TouchableOpacity>
+              <View style={{flexDirection : 'row' , alignItems : 'center' , justifyContent : 'space-between'}}>
+                <TextInput
+                  placeholder="Enter your password"
+                  onChangeText={text => setPassword(text)}
+                  value={password}
+                  placeholderTextColor="gray"
+                  maxLength={40}
+                  secureTextEntry={!showPassword}
+                  style={styles.input}></TextInput>
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}>
+                  <Image
+                    source={
+                      showPassword
+                        ? require('../assets/showpassword.png')
+                        : require('../assets/hidepassword.png')
+                    }
+                    style={{width: 20, height: 20 , marginLeft : 12}}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
             <Text style={styles.err}>{passworderr}</Text>
           </View>
@@ -206,7 +170,6 @@ const Login = props => {
               marginTop: -20,
               alignItems: 'center',
               justifyContent: 'center',
-              marginBottom: 250,
             }}>
             <Text style={{color: 'black'}}>Don't have an Account ? </Text>
             <TouchableOpacity
@@ -216,9 +179,25 @@ const Login = props => {
               </Text>
             </TouchableOpacity>
           </View>
+          <View
+            style={{
+              flexDirection: 'row',
+              gap: 3,
+              marginTop: -20,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+            <Text style={{color: 'black'}}>Forgot Your Password ?</Text>
+            <TouchableOpacity
+              onPress={() => props.navigation.navigate('Signup')}>
+              <Text style={{fontSize: 15, color: colors.aquaBlue}}>
+                Change Password
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </ScrollView>
+    </View>
   );
 };
 
@@ -226,7 +205,9 @@ export default Login;
 const styles = StyleSheet.create({
   container: {
     backgroundColor: 'white',
-    padding: '5%',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    height: '100%',
   },
   title: {
     color: colors.sandyBeige,
@@ -245,7 +226,7 @@ const styles = StyleSheet.create({
   },
   inputelement: {
     borderWidth: 0.4,
-    borderRadius: 15,
+    borderRadius: 3,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -257,7 +238,7 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     padding: 15,
-    borderRadius: 20,
+    borderRadius: 3,
     marginBottom: '5%',
     marginTop: '1%',
     alignItems: 'center',
@@ -277,5 +258,25 @@ const styles = StyleSheet.create({
     color: colors.errorRed,
     textAlign: 'right',
     paddingRight: 10,
+  },
+  msg: {
+    color: 'white',
+    width: '100%',
+    height: 40,
+    position: 'absolute',
+    top: '0%',
+    left: '0%',
+    right: '0%',
+    borderRadius: 3,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 10,
+    paddingTop: 8,
+  },
+  msgtxt: {
+    color: 'white',
+    fontSize: 16,
+    paddingLeft: 20,
   },
 });

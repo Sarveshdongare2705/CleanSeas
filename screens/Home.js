@@ -100,7 +100,7 @@ const Home = props => {
       try {
         setBg2('white');
         setBg3('white');
-        setBg1('black');
+        setBg1(colors.sandyBeige);
         setText('Upcoming Events in ' + loc);
         setEvents([]);
         setLoading(true);
@@ -172,7 +172,7 @@ const Home = props => {
     try {
       setBg3('white');
       setBg1('white');
-      setBg2('black');
+      setBg2(colors.sandyBeige);
       setText('My Participations');
       setLoading(true);
       setText('My Participations');
@@ -188,8 +188,7 @@ const Home = props => {
 
         const eventSnapshot = await firestore()
           .collection('Events')
-          .doc(eventId)
-          .get();
+          .doc(eventId).get();
 
         if (eventSnapshot.exists) {
           const eventData = {id: eventId, ...eventSnapshot.data()};
@@ -226,6 +225,9 @@ const Home = props => {
   );
   useEffect(() => {
     const fetchData = async () => {
+      setBg3('white');
+      setBg1('white');
+      setBg2('white');
       const user = await auth().currentUser;
       getAllEvents();
     };
@@ -312,14 +314,14 @@ const Home = props => {
           />
         </ScrollView>
       </View>
-      <View style={{paddingLeft: '3%', paddingTop: '1%', left: 0}}>
+      <View style={{paddingLeft: '2%', paddingTop: '1%', left: 0}}>
         <ScrollView horizontal>
           <TouchableOpacity
             style={{
               padding: 2,
-              borderWidth: 0.4,
-              borderColor: 'gray',
-              width: 168,
+              width: 170,
+              borderWidth: 1,
+              borderColor: colors.sandyBeige,
               borderRadius: 10,
               alignItems: 'center',
               marginRight: 6,
@@ -339,8 +341,8 @@ const Home = props => {
           <TouchableOpacity
             style={{
               padding: 2,
-              borderWidth: 0.4,
-              borderColor: 'gray',
+              borderWidth: 1,
+              borderColor: colors.sandyBeige,
               width: 170,
               borderRadius: 10,
               alignItems: 'center',

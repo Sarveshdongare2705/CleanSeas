@@ -16,6 +16,7 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import FastImage from 'react-native-fast-image';
+import {colors} from '../Colors';
 
 const EditProfile = props => {
   const navigation = useNavigation();
@@ -35,6 +36,7 @@ const EditProfile = props => {
   const [gender, setGender] = useState('');
   const [ageErr, setAgeErr] = useState(false);
   const [genderErr, setGenderErr] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   const fetchUserData = async user => {
     if (user) {
@@ -67,6 +69,7 @@ const EditProfile = props => {
   useFocusEffect(
     useCallback(() => {
       const unsubscribe = auth().onAuthStateChanged(user => {
+        setShowMenu(false);
         setCurrentUser(user);
         fetchUserData(user);
       });
@@ -75,8 +78,14 @@ const EditProfile = props => {
   );
   const pickImage = async () => {
     const result = await launchImageLibrary({mediaType: 'photo'});
-    console.log(result);
-    setImage(result);
+    if (result.didCancel) {
+      console.log('User cancelled image picker');
+    } else if (result.errorCode) {
+      console.log('ImagePicker Error: ', result.errorMessage);
+    } else {
+      console.log(result);
+      setImage(result);
+    }
   };
   useEffect(() => {
     setNameErr(updatedName === '');
@@ -115,7 +124,9 @@ const EditProfile = props => {
           await userRef.update({Location: Location});
           await userRef.update({desc: desc});
           await userRef.update({age: age});
-          userData && userData.Role.trim() !== 'Organization' && await userRef.update({gender: gender});
+          userData &&
+            userData.Role.trim() !== 'Organization' &&
+            (await userRef.update({gender: gender}));
         }
         if (image !== null) {
           const reference = storage().ref(
@@ -135,17 +146,19 @@ const EditProfile = props => {
   };
   return (
     <View style={{height: '100%', backgroundColor: 'white'}}>
-      <TouchableOpacity
-        style={{paddingTop: 20, paddingHorizontal: 20}}
-        onPress={() =>
-          props.navigation.navigate('Profile', {email: currentUser.email})
-        }>
-        <FastImage
-          source={require('../assets/back.png')}
-          style={{width: 20, height: 20, alignItems: 'flex-start'}}
-          resizeMode={FastImage.resizeMode.cover}
-        />
-      </TouchableOpacity>
+      <View style={{flexDirection : 'row' , gap : 10}}>
+        <TouchableOpacity
+          style={{paddingTop: 10, paddingHorizontal: 20}}
+          onPress={() =>
+            props.navigation.navigate('Profile', {email: currentUser.email})
+          }>
+          <FastImage
+            source={require('../assets/back.png')}
+            style={{width: 20, height: 20, alignItems: 'flex-start'}}
+            resizeMode={FastImage.resizeMode.cover}
+          />
+        </TouchableOpacity>
+      </View>
       <ScrollView style={styles.container}>
         {uploading ? (
           <Loader />
@@ -162,13 +175,7 @@ const EditProfile = props => {
                   style={styles.img}
                 />
               )}
-              <View>
-                {showErr && (
-                  <Text style={{color: 'red', fontSize: 14, marginTop: 10}}>
-                    Please update your profile Image
-                  </Text>
-                )}
-              </View>
+              <View></View>
             </TouchableOpacity>
             <View style={styles.form}>
               <TextInput
@@ -200,7 +207,7 @@ const EditProfile = props => {
               <TextInput
                 style={[
                   styles.input,
-                  {height: 140},
+                  {height: 130},
                   descErr && {borderColor: 'red', borderWidth: 1},
                 ]}
                 placeholder={`Enter your Description`}
@@ -243,19 +250,62 @@ const EditProfile = props => {
                 />
               )}
               {userData && userData.Role.trim() !== 'Organization' && (
-                <TextInput
+                <TouchableOpacity
                   style={[
                     styles.input,
                     genderErr && {borderColor: 'red', borderWidth: 1},
                   ]}
-                  placeholder={`Enter your Gender`}
-                  placeholderTextColor="gray"
-                  value={gender}
-                  maxLength={20}
-                  onChangeText={text => {
-                    setGender(text);
-                  }}
-                />
+                  onPress={() => setShowMenu(!showMenu)}>
+                  <View
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginRight: 20,
+                    }}>
+                    <TextInput
+                      placeholder={`Select Gender`}
+                      placeholderTextColor="gray"
+                      value={gender}
+                      maxLength={20}
+                      editable={false}
+                      style={{color: 'black'}}
+                    />
+                    <Image
+                      source={
+                        showMenu
+                          ? require('../assets/up.png')
+                          : require('../assets/down.png')
+                      }
+                      style={{width: 13, height: 13, alignItems: 'flex-start'}}
+                    />
+                  </View>
+                </TouchableOpacity>
+              )}
+              {showMenu ? (
+                <View style={styles.menu}>
+                  <TouchableOpacity
+                    style={styles.opt}
+                    onPress={() => {
+                      setGender('Male');
+                      setShowMenu(false);
+                    }}>
+                    <Text style={{color: 'black', marginBottom: -7}}>Male</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.opt}
+                    onPress={() => {
+                      setGender('Female');
+                      setShowMenu(false);
+                    }}>
+                    <Text style={{color: 'black', marginBottom: -7}}>
+                      Female
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View></View>
               )}
               <TextInput
                 style={styles.input}
@@ -305,7 +355,7 @@ const styles = StyleSheet.create({
     width: '96%',
     paddingLeft: 20,
     borderColor: 'gray',
-    borderRadius: 5,
+    borderRadius: 3,
     height: 50,
   },
   btn: {
@@ -330,5 +380,19 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     borderWidth: 0.3,
     borderColor: 'black',
+  },
+  menu: {
+    width: '96%',
+    borderWidth: 0.3,
+    borderColor: 'black',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginTop: -10,
+    borderRadius: 3,
+  },
+  opt: {
+    paddingVertical: 15,
+    borderBottomColor: 'lightgray',
+    borderBottomWidth: 0.3,
   },
 });

@@ -23,7 +23,6 @@ import Post from '../components/Post';
 const Profile = ({route}) => {
   const navigation = useNavigation();
   const routeEmail = route.params.email;
-  console.log('Route email= ', routeEmail);
   const [currentUser, setCurrentUser] = useState(null);
   const [userData, setUserData] = useState(null);
   const [profileImg, setProfileImg] = useState(null);
@@ -148,7 +147,6 @@ const Profile = ({route}) => {
     }
   };
   const getPosts = async email => {
-    console.log(email);
     try {
       const postsSnapshot = await firestore()
         .collection('Posts')
@@ -258,7 +256,7 @@ const Profile = ({route}) => {
         {uploading ? (
           <ActivityIndicator
             size="large"
-            color={colors.aquaBlue}
+            color={colors.sandyBeige}
             style={{height: '100%'}}
           />
         ) : (
@@ -270,43 +268,54 @@ const Profile = ({route}) => {
                 <RefreshControl refreshing={uploading} onRefresh={onRefresh} />
               }>
               <View style={styles.section2}>
-                {profileImg ? (
-                  <TouchableOpacity
-                    onPress={() =>
-                      navigation.navigate('Image', {
-                        uri: profileImg,
-                        path: 'Profile',
-                        email: routeEmail,
-                      })
-                    }
-                    style={{
-                      position: 'relative',
-                    }}>
-                    <FastImage
-                      source={{uri: profileImg}}
+                <View
+                  style={{
+                    borderWidth: 3,
+                    borderColor: 'white',
+                    borderColor: colors.sandyBeige,
+                    borderRadius : 100,
+                    marginLeft :-3
+                  }}>
+                  {profileImg ? (
+                    <TouchableOpacity
+                      onPress={() =>
+                        navigation.navigate('Image', {
+                          uri: profileImg,
+                          path: 'Profile',
+                          email: routeEmail,
+                        })
+                      }
                       style={{
-                        width: 75,
-                        height: 75,
+                        position: 'relative',
+                      }}>
+                      <FastImage
+                        source={{uri: profileImg}}
+                        style={{
+                          width: 80,
+                          height: 80,
+                          alignItems: 'flex-end',
+                          borderRadius: 100,
+                          borderWidth: 2,
+                          borderColor: 'white',
+                        }}
+                        resizeMode={FastImage.resizeMode.cover}
+                      />
+                    </TouchableOpacity>
+                  ) : (
+                    <FastImage
+                      source={require('../assets/profile.png')}
+                      style={{
+                        width: 80,
+                        height: 80,
                         alignItems: 'flex-end',
                         borderRadius: 100,
                         borderWidth: 2,
-                        borderColor: 'black',
+                        borderColor: 'white',
                       }}
                       resizeMode={FastImage.resizeMode.cover}
                     />
-                  </TouchableOpacity>
-                ) : (
-                  <FastImage
-                    source={require('../assets/profile.png')}
-                    style={{
-                      width: 72,
-                      height: 72,
-                      alignItems: 'flex-end',
-                      borderRadius: 100,
-                    }}
-                    resizeMode={FastImage.resizeMode.cover}
-                  />
-                )}
+                  )}
+                </View>
                 <View style={styles.details}>
                   <View style={styles.detail}>
                     <Text style={styles.value}>{participations}</Text>
@@ -326,7 +335,9 @@ const Profile = ({route}) => {
                 <Text style={styles.heading}>{userData.Location}</Text>
                 {userData.age && userData.gender && (
                   <Text style={styles.heading}>
-                    {userData && userData.Role.trim() === 'Organization' ? 'Year Established : ' + userData.age : userData.age + ' ' + userData.gender}
+                    {userData && userData.Role.trim() === 'Organization'
+                      ? 'Year Established : ' + userData.age
+                      : userData.age + ' ' + userData.gender}
                   </Text>
                 )}
                 <Text style={styles.heading}>{userData.Useremail}</Text>
@@ -342,11 +353,15 @@ const Profile = ({route}) => {
                     <Text style={styles.btntext}>Edit Profile</Text>
                   </TouchableOpacity>
                 ) : hasFollowed ? (
-                  <TouchableOpacity style={styles.btn} onPress={cancelFollow}>
+                  <TouchableOpacity
+                    style={[styles.btn, {width: '100%'}]}
+                    onPress={cancelFollow}>
                     <Text style={styles.btntext}>Unfollow</Text>
                   </TouchableOpacity>
                 ) : (
-                  <TouchableOpacity style={styles.btn} onPress={handleFollow}>
+                  <TouchableOpacity
+                    style={[styles.btn, {width: '100%'}]}
+                    onPress={handleFollow}>
                     <Text style={styles.btntext}>Follow</Text>
                   </TouchableOpacity>
                 )}
@@ -359,7 +374,6 @@ const Profile = ({route}) => {
               <View style={styles.heading}>
                 <Text
                   style={[
-                    styles.value,
                     {
                       fontSize: 15,
                       borderBottomWidth: 0.3,
@@ -369,7 +383,9 @@ const Profile = ({route}) => {
                       paddingHorizontal: 5,
                     },
                   ]}>
-                  {postsCount + ' Posts'}
+                  {postsCount == 1
+                    ? postsCount + ' Post'
+                    : postsCount + ' Posts'}
                 </Text>
               </View>
               {posts.length > 0 ? (
@@ -462,8 +478,8 @@ const styles = StyleSheet.create({
   },
   value: {
     color: 'black',
-    fontWeight: '900',
-    fontSize: 18,
+    fontWeight: '600',
+    fontSize: 20,
   },
   heading: {
     color: 'black',
@@ -471,11 +487,10 @@ const styles = StyleSheet.create({
   btn: {
     width: '49%',
     height: 30,
-    borderWidth: 1,
-    borderColor: 'black',
-    borderRadius: 10,
+    borderRadius: 3,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: colors.sandyBeige,
   },
   btntext: {
     fontSize: 14,

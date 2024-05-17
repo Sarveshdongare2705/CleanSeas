@@ -24,7 +24,7 @@ const Event = ({event}) => {
         height: 220,
         marginRight: 10,
         padding: 5,
-        borderRadius: 12,
+        borderRadius: 3,
       }}>
       {event && (
         <Image
@@ -50,7 +50,7 @@ const Event = ({event}) => {
             height: 100,
             padding: 10,
             objectFit: 'cover',
-            borderRadius: 12,
+            borderRadius: 3,
           }}
         />
       )}
@@ -126,7 +126,7 @@ const Event = ({event}) => {
               height: 25,
               marginTop: 5,
               alignItems: 'center',
-              borderRadius: 10,
+              borderRadius: 3,
             }}
             onPress={() =>
               navigation.navigate('EventDetails', {
@@ -136,10 +136,10 @@ const Event = ({event}) => {
             <Text
               style={{
                 textAlign: 'center',
-                color: 'black',
-                fontWeight: '700',
+                color: 'white',
+                fontWeight: '500',
                 paddingTop: 4,
-                fontSize: 12,
+                fontSize: 13,
               }}>
               Check Details
             </Text>

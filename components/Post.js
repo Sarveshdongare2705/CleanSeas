@@ -17,6 +17,7 @@ import storage from '@react-native-firebase/storage';
 import BottomNavigation from '../components/BottomNavigation';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import Loader from '../components/Loader';
+import { colors } from '../Colors';
 
 const Post = ({post, currentUserEmail}) => {
   const [liked, setLiked] = useState(false);
@@ -106,7 +107,7 @@ const Post = ({post, currentUserEmail}) => {
         style={{
           marginBottom: 10,
           borderWidth: 0.4,
-          borderColor: 'black',
+          borderColor: 'lightgray',
           padding: 10,
           borderRadius: 7,
         }}>
@@ -193,9 +194,9 @@ const Post = ({post, currentUserEmail}) => {
         <View style={{paddingVertical: 10}}>
           <Text
             style={{
-              color: '#0077be',
+              color: 'black',
               fontWeight: '500',
-              fontSize: 13,
+              fontSize: 14,
               width: '100%',
             }}>
             {post.title}
