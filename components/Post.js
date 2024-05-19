@@ -20,15 +20,19 @@ import Loader from '../components/Loader';
 import {colors} from '../Colors';
 import FastImage from 'react-native-fast-image';
 
-const Post = ({post, currentUserEmail}) => {
+const Post = ({post, currentUserEmail, onDelete , role}) => {
   const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(0);
   const [fetchedDetails, setFetchedDetails] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const navigation = useNavigation();
   const handleDelete = async postId => {
     try {
       await firestore().collection('Posts').doc(postId).delete();
       console.log('Delete completed');
+      if (onDelete) {
+        onDelete(postId);
+      }
     } catch (error) {
       console.error('Error deleting message: ', error);
     }
@@ -93,12 +97,13 @@ const Post = ({post, currentUserEmail}) => {
       const unsubscribe = auth().onAuthStateChanged(user => {
         setLikes(0);
         setLiked(false);
+        setShowMenu(false);
         setFetchedDetails(false);
         checkLike();
         fetchDetails();
       });
       return unsubscribe;
-    }, []),
+    }, [post]),
   );
 
   if (fetchedDetails) {
@@ -112,6 +117,49 @@ const Post = ({post, currentUserEmail}) => {
           padding: 10,
           borderRadius: 7,
         }}>
+        {currentUserEmail === post.Useremail && showMenu && (
+          <View style={styles.menu}>
+            <TouchableOpacity
+              style={styles.opt}
+              onPress={() => handleDelete(post.id)}>
+              <Image
+                source={require('../assets/delete.png')}
+                style={{
+                  width: 17,
+                  height: 17,
+                }}
+              />
+              <Text
+                style={{
+                  color: colors.errorRed,
+                  fontSize: 14,
+                  fontWeight: '900',
+                }}>
+                Delete
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.opt}
+              onPress={() =>
+                navigation.navigate('CreatePost', {
+                  routeEmail: currentUserEmail,
+                  role: role,
+                  post : post
+                })
+              }>
+              <Image
+                source={require('../assets/edit.png')}
+                style={{
+                  width: 17,
+                  height: 17,
+                }}
+              />
+              <Text style={{color: 'black', fontSize: 14, fontWeight: '900'}}>
+                Edit Post
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
         <View
           style={{
             flexDirection: 'row',
@@ -170,20 +218,19 @@ const Post = ({post, currentUserEmail}) => {
                 justifyContent: 'space-between',
                 alignItems: 'center',
               }}>
-              <View style={{width: '87%'}}>
+              <View style={{width: '85%'}}>
                 <Text style={{color: 'black', fontSize: 16, fontWeight: '500'}}>
                   {post.Username || 'Loading...'}
                 </Text>
               </View>
               <View>
                 {currentUserEmail === post.Useremail && (
-                  <TouchableOpacity onPress={() => handleDelete(post.id)}>
+                  <TouchableOpacity onPress={() => setShowMenu(!showMenu)}>
                     <Image
-                      source={require('../assets/delete.png')}
+                      source={require('../assets/menu.png')}
                       style={{
-                        width: 14,
-                        height: 14,
-                        borderRadius: 100,
+                        width: 20,
+                        height: 20,
                       }}
                     />
                   </TouchableOpacity>
@@ -269,7 +316,7 @@ const Post = ({post, currentUserEmail}) => {
             {post.time.toDate().toLocaleString()}
           </Text>
         </View>
-        {post.EventId && (
+        {post.EventId && post.EventId !== '' && (
           <TouchableOpacity
             style={[styles.btn]}
             onPress={() =>
@@ -309,5 +356,27 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: 'black',
     fontWeight: '500',
+  },
+  menu: {
+    position: 'absolute',
+    width: 130,
+    height: 80,
+    padding: 10,
+    backgroundColor: 'rgb(230 , 230 , 230)',
+    right: 20,
+    zIndex: 999,
+    top: 45,
+    borderRadius: 10,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+  },
+  opt: {
+    width: '100%',
+    paddingHorizontal: 6,
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
 });

@@ -224,6 +224,11 @@ const Profile = ({route}) => {
     await fetchParticipations();
   };
 
+  const handlePostDeletion = postId => {
+    setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+    setPostsCount(prevCount => prevCount - 1);
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="white" barStyle="dark-content" />
@@ -237,7 +242,7 @@ const Profile = ({route}) => {
                   <TouchableOpacity
                     onPress={() =>
                       navigation.navigate('CreatePost', {
-                        routeEmail: routeEmail,
+                        routeEmail: currentUser.email,
                         role: userData && userData.Role.trim(),
                       })
                     }>
@@ -476,7 +481,13 @@ const Profile = ({route}) => {
               </View>
               {posts.length > 0 ? (
                 posts.map(post => (
-                  <Post post={post} currentUserEmail={currentUser.email} />
+                  <Post
+                    key={post.id}
+                    post={post}
+                    currentUserEmail={currentUser.email}
+                    onDelete={handlePostDeletion}
+                    role={userData && userData.Role.trim()}
+                  />
                 ))
               ) : (
                 <Text>No posts available</Text>

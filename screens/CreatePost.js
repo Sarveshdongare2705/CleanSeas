@@ -25,7 +25,7 @@ import {colors} from '../Colors';
 
 const CreatePost = () => {
   const route = useRoute();
-  const {routeEmail, role} = route.params;
+  const {routeEmail, role, post} = route.params;
   const navigation = useNavigation();
   console.log('hi ' + routeEmail + role);
   const [image, setImage] = useState(null);
@@ -69,11 +69,12 @@ const CreatePost = () => {
     useCallback(() => {
       const unsubscribe = auth().onAuthStateChanged(user => {
         setCurrentUser(user);
-        setisLink(false);
-        setLinkId('');
+        post && post.isLink ? setisLink(post.isLink) : setLinkId(false);
+        post ? setLinkId(post.EventId) : setLinkId('');
         getEvents();
         setImage(null);
-        setTitle('');
+        post ? setTitle(post.title) : setTitle('');
+        post ? setDescription(post.desc) : setDescription('');
         setShowMenu(false);
       });
       return unsubscribe;
@@ -101,23 +102,17 @@ const CreatePost = () => {
       if (!titleErr) {
         setUploading(true);
         const timestamp = firestore.Timestamp.now();
-        let PostData = {};
-        isLink
-          ? (PostData = {
-              Useremail: routeEmail,
-              title: title,
-              desc: description,
-              time: timestamp,
-              EventId : linkId,
-              isLink : true,
-            })
-          : (PostData = {
-              Useremail: routeEmail,
-              title: title,
-              desc: description,
-              time: timestamp,
-              isLink : false,
-            });
+        let PostData = {
+          Useremail: routeEmail,
+          title: title,
+          desc: description,
+          time: timestamp,
+          isLink: isLink,
+        };
+
+        if (isLink) {
+          PostData.EventId = linkId;
+        }
         const PostRef = await firestore().collection('Posts').add(PostData);
         console.log('Post posted');
 
@@ -132,6 +127,48 @@ const CreatePost = () => {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const updatePost = async () => {
+    try {
+      if (!titleErr) {
+        setUploading(true);
+        const timestamp = firestore.Timestamp.now();
+        let PostData = {
+          Useremail: routeEmail,
+          title: title,
+          desc: description,
+          time: timestamp,
+          isLink: isLink,
+        };
+
+        if (isLink) {
+          PostData.EventId = linkId;
+        }
+        else{
+          PostData.EventId = '';
+        }
+        await firestore().collection('Posts').doc(post.id).update(PostData);
+        console.log('Post updated');
+        console.log('PostImage : ', post.postImg);
+
+        if (image !== null) {
+          try {
+            const postId = post.id;
+            const reference = storage().ref(`Post${postId}`);
+            await reference.putFile(image.assets[0].uri);
+            console.log('Image uploaded successfully');
+          } catch (err) {
+            console.error('Error updating image : ', err);
+          }
+        }
+
+        setUploading(false);
+        navigation.navigate('Community');
+      }
+    } catch (err) {
+      console.error('Error updating Post : ', err);
     }
   };
 
@@ -151,7 +188,11 @@ const CreatePost = () => {
             source={require('../assets/back.png')}
             style={{width: 20, height: 20, alignItems: 'flex-start'}}
           />
-          <Text style={{color: 'black'}}>Create a Post</Text>
+          {post ? (
+            <Text style={{color: 'black'}}>Update Post</Text>
+          ) : (
+            <Text style={{color: 'black'}}>Create a Post</Text>
+          )}
         </TouchableOpacity>
       </View>
       {uploading ? (
@@ -160,7 +201,9 @@ const CreatePost = () => {
         <ScrollView style={styles.container}>
           <View style={styles.content}>
             <TouchableOpacity onPress={pickImage} style={{width: '96%'}}>
-              {image ? (
+              {post && image === null && post.postImg !== null ? (
+                <Image source={{uri: post.postImg}} style={styles.img}></Image>
+              ) : image !== null ? (
                 <Image
                   source={{uri: image.assets[0].uri}}
                   style={styles.img}></Image>
@@ -178,7 +221,7 @@ const CreatePost = () => {
                 ]}
                 placeholder={`Enter title`}
                 placeholderTextColor="gray"
-                maxLength={90}
+                maxLength={200}
                 value={title}
                 onChangeText={text => {
                   setTitle(text);
@@ -186,11 +229,11 @@ const CreatePost = () => {
               />
               <TextInput
                 style={[styles.input, {height: 180}]}
-                maxLength={500}
+                maxLength={5000}
                 placeholder="Enter Post"
                 placeholderTextColor="gray"
                 multiline={true}
-                numberOfLines={18}
+                numberOfLines={40}
                 value={description}
                 onChangeText={setDescription}
               />
@@ -271,9 +314,15 @@ const CreatePost = () => {
               )}
             </View>
             <View style={[styles.btn, {}]}>
-              <TouchableOpacity onPress={createPost}>
-                <Text style={styles.btntext}>Create Post</Text>
-              </TouchableOpacity>
+              {post ? (
+                <TouchableOpacity onPress={updatePost}>
+                  <Text style={styles.btntext}>Update Post</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity onPress={createPost}>
+                  <Text style={styles.btntext}>Create Post</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </ScrollView>
@@ -316,7 +365,7 @@ const styles = StyleSheet.create({
     borderColor: 'gray',
     borderRadius: 3,
     height: 50,
-    paddingRight :10
+    paddingRight: 10,
   },
   btn: {
     width: '60%',

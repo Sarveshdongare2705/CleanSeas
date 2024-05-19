@@ -22,6 +22,7 @@ import CalendarGrid from '../components/Calender';
 import {colors} from '../Colors';
 import FastImage from 'react-native-fast-image';
 import Event from '../components/Event';
+import messaging from '@react-native-firebase/messaging';
 
 const Home = props => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -47,7 +48,6 @@ const Home = props => {
             await firestore().collection('Events').doc(eventData.id).update({
               finished: true,
             });
-            console.log('Flags updated');
           }
         }),
       );
@@ -150,7 +150,6 @@ const Home = props => {
     }
   };
   const fetchUserData = async currentUser => {
-    console.log('hi');
     const userSnapShot = await firestore()
       .collection('Users')
       .where('Useremail', '==', currentUser.email)
@@ -166,7 +165,6 @@ const Home = props => {
         setProfileImg(null);
       }
     }
-    console.log('User Data : ', userData);
   };
   const getMyParticipations = async user => {
     try {
@@ -188,7 +186,8 @@ const Home = props => {
 
         const eventSnapshot = await firestore()
           .collection('Events')
-          .doc(eventId).get();
+          .doc(eventId)
+          .get();
 
         if (eventSnapshot.exists) {
           const eventData = {id: eventId, ...eventSnapshot.data()};
@@ -224,16 +223,10 @@ const Home = props => {
     }, []),
   );
   useEffect(() => {
-    const fetchData = async () => {
-      setBg3('white');
-      setBg1('white');
-      setBg2('white');
-      const user = await auth().currentUser;
-      getAllEvents();
-    };
-    fetchData();
-    const intervalId = setInterval(fetchData, 100000);
-    return () => clearInterval(intervalId);
+    setBg3('white');
+    setBg1('white');
+    setBg2('white');
+    getAllEvents();
   }, []);
 
   const currentDate = new Date();

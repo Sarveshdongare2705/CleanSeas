@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Login, Signup, Welcome } from './screens';
+import React, {useEffect, useState} from 'react';
+import {NavigationContainer} from '@react-navigation/native';
+import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import {Login, Signup, Welcome} from './screens';
 import Home from './screens/Home';
 import Explore from './screens/Explore';
 import Search from './screens/Search';
@@ -35,14 +35,16 @@ const App = () => {
   }, []);
 
   if (loading) {
-    return <Loader />; 
+    return <Loader />;
   }
 
   const initialRouteName = currentUser ? 'Home ' : 'Welcome';
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRouteName}>
+      <Stack.Navigator
+        screenOptions={{headerShown: false}}
+        initialRouteName={initialRouteName}>
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="Welcome" component={Welcome} />
         <Stack.Screen name="Explore" component={Explore} />
@@ -57,9 +59,9 @@ const App = () => {
         <Stack.Screen name="CreateDrive" component={CreateDrive} />
         <Stack.Screen name="EventDetails" component={EventDetails} />
         <Stack.Screen name="Chat" component={Chat} />
-        <Stack.Screen name='OrgEvents' component={OrgEvents} />
-        <Stack.Screen name='DateEvents' component={DateEvents} />
-        <Stack.Screen name='ApiPage' component={ApiPage} />
+        <Stack.Screen name="OrgEvents" component={OrgEvents} />
+        <Stack.Screen name="DateEvents" component={DateEvents} />
+        <Stack.Screen name="ApiPage" component={ApiPage} />
       </Stack.Navigator>
     </NavigationContainer>
   );
