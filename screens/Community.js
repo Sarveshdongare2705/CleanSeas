@@ -18,6 +18,7 @@ import storage from '@react-native-firebase/storage';
 import BottomNavigation from '../components/BottomNavigation';
 import Post from '../components/Post';
 import {colors} from '../Colors';
+import { useFocusEffect } from '@react-navigation/native';
 
 const Community = props => {
   const [currentUser, setCurrentUser] = useState(null);
@@ -26,53 +27,74 @@ const Community = props => {
   const [updating, setUpdating] = useState(false);
 
   const getPosts = async () => {
-    try {
-      setUpdating(true);
-      const postsSnapshot = await firestore()
-        .collection('Posts')
-        .orderBy('time', 'desc')
-        .get();
-      const postsData = [];
-      await Promise.all(
-        postsSnapshot.docs.map(async doc => {
-          const postData = {id: doc.id, ...doc.data()};
-          const userSnapshot = await firestore()
-            .collection('Users')
-            .where('Useremail', '==', postData.Useremail)
-            .get();
-          if (!userSnapshot.empty) {
-            const user = userSnapshot.docs[0].data();
-            postData.Username = user.Username;
-            const profileImg = `${user.Useremail}`;
-            const postImg = `${`Post${postData.id}`}`;
-            try {
-              const url2 = await storage().ref(profileImg).getDownloadURL();
-              postData.profileImg = url2;
-              const url1 = await storage().ref(postImg).getDownloadURL();
-              postData.postImg = url1;
-            } catch (error) {
-              postData.postImg = null;
+    if (currentUser) {
+      try {
+        setUpdating(true);
+        const followedSnapshot = await firestore()
+          .collection('Followers')
+          .where('followerEmail', '==', currentUser.email)
+          .get();
+        const followedUsersData = followedSnapshot.docs.map(
+          doc => doc.data().followedEmail,
+        );
+        if (followedUsersData.length === 0) {
+          setPosts([]);
+          setUpdating(false);
+          return;
+        }
+        const postsSnapshot = await firestore()
+          .collection('Posts')
+          .where('Useremail', 'in', followedUsersData)
+          .orderBy('time', 'desc')
+          .get();
+
+        const postsData = [];
+        await Promise.all(
+          postsSnapshot.docs.map(async doc => {
+            const postData = {id: doc.id, ...doc.data()};
+            const userSnapshot = await firestore()
+              .collection('Users')
+              .where('Useremail', '==', postData.Useremail)
+              .get();
+
+            if (!userSnapshot.empty) {
+              const user = userSnapshot.docs[0].data();
+              postData.Username = user.Username;
+              const profileImg = `${user.Useremail}`;
+              const postImg = `${`Post${postData.id}`}`;
+
+              try {
+                const url2 = await storage().ref(profileImg).getDownloadURL();
+                postData.profileImg = url2;
+                const url1 = await storage().ref(postImg).getDownloadURL();
+                postData.postImg = url1;
+              } catch (error) {
+                postData.profileImg = null;
+                postData.postImg = null;
+              }
             }
-          }
-          postsData.push(postData);
-        }),
-      );
-      setPosts(postsData);
-      setUpdating(false);
-    } catch (err) {
-      console.error(err);
+            postsData.push(postData);
+          }),
+        );
+
+        setPosts(postsData);
+        setUpdating(false);
+      } catch (err) {
+        console.error(err);
+      }
     }
   };
-  useEffect(() => {
-    const fetchData = async () => {
-      const user = await auth().currentUser;
-      setCurrentUser(user);
-      getPosts();
-    };
-    fetchData();
-    const intervalId = setInterval(fetchData, 100000);
-    return () => clearInterval(intervalId);
-  }, []);
+  
+
+  useFocusEffect(
+    useCallback(() => {
+      const unsubscribe = auth().onAuthStateChanged(user => {
+        setCurrentUser(user);
+        getPosts();
+      });
+      return unsubscribe;
+    }, []),
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -85,8 +107,9 @@ const Community = props => {
       <StatusBar backgroundColor="white" barStyle="dark-content" />
       <View style={{height: '88%'}}>
         <ScrollView
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        >
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }>
           {updating ? (
             <ActivityIndicator size="large" color={colors.aquaBlue} />
           ) : posts.length > 0 ? (

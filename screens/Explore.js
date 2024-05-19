@@ -208,8 +208,7 @@ const Explore = props => {
         <View style={{flexDirection: 'row', alignItems: 'center', gap: -5}}>
           <View
             style={{
-              marginLeft: 15,
-              width: 230,
+              width: '100%',
               height: 45,
               flexDirection: 'row',
               gap: 7,
@@ -219,7 +218,7 @@ const Explore = props => {
               borderColor: 'gray',
               paddingLeft: 10,
               color: 'black',
-              borderRadius: 20,
+              borderRadius: 3,
               height: 37,
             }}>
             <Image
@@ -241,38 +240,14 @@ const Explore = props => {
               value={search}
             />
           </View>
-          <TouchableOpacity onPress={() => handleSearch(search)}>
-            <View style={{position: 'relative'}}>
-              <Text
-                style={{
-                  color: 'white',
-                  fontWeight: 'bold',
-                  padding: 9,
-                  width: 100,
-                  height: 36,
-                  margin: 10,
-                  backgroundColor: 'white',
-                  textAlign: 'center',
-                  color: colors.aquaBlue,
-                  borderRadius: 20,
-                  fontSize: 13,
-                  borderWidth: 0.5,
-                  borderColor: colors.aquaBlue,
-                }}>
-                Search
-              </Text>
-            </View>
-          </TouchableOpacity>
         </View>
-        <ScrollView style={{height : '84%'}}>
+        <ScrollView style={{height : '87%'}}>
           <View>
             <Text
               style={{
                 color: 'black',
                 fontSize: 15,
-                padding: 10,
-                marginTop: -10,
-                marginBottom: -10,
+                paddingVertical: 5,
               }}>
               {searching ? text : 'Upcoming Events'}
             </Text>
@@ -280,14 +255,12 @@ const Explore = props => {
           {loading ? (
             <View
               style={{
-                height: '40.5%',
                 alignItems: 'center',
-                paddingTop: '25%',
               }}>
               <ActivityIndicator size="large" color={colors.aquaBlue} />
             </View>
           ) : (
-            <ScrollView horizontal style={{margin: 10}}>
+            <ScrollView horizontal>
               {events.map(event => (
                 <Event event={event} />
               ))}
@@ -298,14 +271,12 @@ const Explore = props => {
               style={{
                 color: 'black',
                 fontSize: 15,
-                padding: 10,
-                marginTop: -10,
-                marginBottom: -10,
+                paddingVertical: 5,
               }}>
               Completed Events
             </Text>
           </View>
-          <ScrollView horizontal style={{margin: 10}}>
+          <ScrollView horizontal>
             {completedEvents.map(event => (
               <Event event={event} />
             ))}
@@ -316,16 +287,13 @@ const Explore = props => {
                 style={{
                   color: 'black',
                   fontSize: 15,
-                  padding: 10,
-                  marginTop: -10,
-                  marginBottom: -10,
-                  textAlign: 'center',
+                  paddingVertical: 5,
                 }}>
                 Organizations
               </Text>
             </View>
           )}
-          <ScrollView horizontal style={{paddingTop: 7}}>
+          <ScrollView horizontal>
             {orgs.map(org => (
               <View
                 key={org.id}
@@ -335,8 +303,8 @@ const Explore = props => {
                   width: 170,
                   height: 180,
                   flexDirection: 'column',
-                  margin: 5,
-                  borderRadius: 20,
+                  margin: 3,
+                  borderRadius: 3,
                   alignItems: 'center',
                   gap: 20,
                 }}>
@@ -344,7 +312,7 @@ const Explore = props => {
                   <Image
                     source={{uri: org.uri}}
                     style={{
-                      top: 7,
+                      top: 10,
                       width: 80,
                       height: 80,
                       borderRadius: 100,
@@ -372,7 +340,7 @@ const Explore = props => {
                         padding: 5,
                         width: '100%',
                         backgroundColor: colors.sandyBeige,
-                        borderRadius: 13,
+                        borderRadius: 3,
                         alignItems: 'center',
                       }}
                       onPress={() => {
@@ -401,17 +369,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'white',
+    paddingHorizontal : 7 , 
+    paddingVertical : 5,
   },
   content: {
     flex: 1,
-  },
-  heading: {
-    marginTop: 10,
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-end',
-    padding: 20,
-    marginBottom: -7,
-    gap: 7,
   },
 });

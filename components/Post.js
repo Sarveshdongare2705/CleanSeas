@@ -17,7 +17,8 @@ import storage from '@react-native-firebase/storage';
 import BottomNavigation from '../components/BottomNavigation';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import Loader from '../components/Loader';
-import { colors } from '../Colors';
+import {colors} from '../Colors';
+import FastImage from 'react-native-fast-image';
 
 const Post = ({post, currentUserEmail}) => {
   const [liked, setLiked] = useState(false);
@@ -256,7 +257,7 @@ const Post = ({post, currentUserEmail}) => {
               </TouchableOpacity>
             )}
             <Text style={{color: 'black', fontSize: 14, fontWeight: '400'}}>
-              {likes === 1 ? likes+' Like' : likes+' Likes'}
+              {likes === 1 ? likes + ' Like' : likes + ' Likes'}
             </Text>
           </View>
           <Text
@@ -268,9 +269,45 @@ const Post = ({post, currentUserEmail}) => {
             {post.time.toDate().toLocaleString()}
           </Text>
         </View>
+        {post.EventId && (
+          <TouchableOpacity
+            style={[styles.btn]}
+            onPress={() =>
+              navigation.navigate('EventDetails', {id: post.EventId})
+            }>
+            <Text style={styles.btntext}>Check Event</Text>
+            <Image
+              source={require('../assets/forward.png')}
+              style={{width: 20, height: 20, alignItems: 'flex-end'}}
+            />
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
 };
 
 export default Post;
+
+const styles = StyleSheet.create({
+  btn: {
+    width: '110%',
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.aquaBlue,
+    marginTop: 20,
+    marginBottom: -10,
+    marginLeft: -10,
+    marginRight: -10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 25,
+  },
+  btntext: {
+    fontSize: 15,
+    color: 'black',
+    fontWeight: '500',
+  },
+});

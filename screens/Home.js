@@ -280,7 +280,7 @@ const Home = props => {
           gap: 5,
           alignItems: 'center',
           paddingHorizontal: '3%',
-          paddingTop: 15,
+          paddingTop: 5,
           justifyContent: 'space-between',
           alignItems: 'center',
         }}>

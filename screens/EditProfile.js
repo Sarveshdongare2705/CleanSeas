@@ -7,6 +7,7 @@ import {
   Image,
   Alert,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import React, {useCallback, useEffect, useState} from 'react';
 import Loader from '../components/Loader';
@@ -37,6 +38,8 @@ const EditProfile = props => {
   const [ageErr, setAgeErr] = useState(false);
   const [genderErr, setGenderErr] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+
+  const menuData = ['Male', 'Female'];
 
   const fetchUserData = async user => {
     if (user) {
@@ -105,6 +108,9 @@ const EditProfile = props => {
 
   const handleEditProfile = async () => {
     try {
+      if (userData && userData.Role.trim() === 'Organization') {
+        setGenderErr(false);
+      }
       if (
         nameErr === false &&
         descErr === false &&
@@ -112,7 +118,6 @@ const EditProfile = props => {
         ageErr === false &&
         genderErr === false
       ) {
-        console.log(nameErr);
         setUploading(true);
         const userSnapShot = await firestore()
           .collection('Users')
@@ -146,7 +151,7 @@ const EditProfile = props => {
   };
   return (
     <View style={{height: '100%', backgroundColor: 'white'}}>
-      <View style={{flexDirection : 'row' , gap : 10}}>
+      <View style={{flexDirection: 'row', gap: 10}}>
         <TouchableOpacity
           style={{paddingTop: 10, paddingHorizontal: 20}}
           onPress={() =>
@@ -161,7 +166,7 @@ const EditProfile = props => {
       </View>
       <ScrollView style={styles.container}>
         {uploading ? (
-          <Loader />
+          <ActivityIndicator size="large" color={colors.aquaBlue} />
         ) : (
           <View style={styles.content}>
             <TouchableOpacity onPress={pickImage}>
@@ -171,7 +176,7 @@ const EditProfile = props => {
                 <Image source={{uri: profileImg}} style={styles.img} />
               ) : (
                 <Image
-                  source={require('../assets/profile.png')}
+                  source={require('../assets/profileImage1.png')}
                   style={styles.img}
                 />
               )}
@@ -285,24 +290,18 @@ const EditProfile = props => {
               )}
               {showMenu ? (
                 <View style={styles.menu}>
-                  <TouchableOpacity
-                    style={styles.opt}
-                    onPress={() => {
-                      setGender('Male');
-                      setShowMenu(false);
-                    }}>
-                    <Text style={{color: 'black', marginBottom: -7}}>Male</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.opt}
-                    onPress={() => {
-                      setGender('Female');
-                      setShowMenu(false);
-                    }}>
-                    <Text style={{color: 'black', marginBottom: -7}}>
-                      Female
-                    </Text>
-                  </TouchableOpacity>
+                  {menuData.map(menu => (
+                    <TouchableOpacity
+                      style={styles.opt}
+                      onPress={() => {
+                        setGender(menu);
+                        setShowMenu(false);
+                      }}>
+                      <Text style={{color: 'black', marginBottom: -7}}>
+                        {menu}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
               ) : (
                 <View></View>

@@ -112,55 +112,6 @@ const OrgEvents = ({route}) => {
     }
   }
 
-  const getSummaryEvents = async user => {
-    if (user) {
-      try {
-        const userSnapShot = await firestore()
-          .collection('Users')
-          .where('Useremail', '==', user.email)
-          .get();
-        if (!userSnapShot.empty) {
-          const userLoc = userSnapShot.docs[0].data().Location;
-          const currentDate = new Date();
-          const eventsSnapshot = await firestore()
-            .collection('Events')
-            .where('Useremail', '==', routeEmail)
-            .where('finished' , '==',true)
-            .where('summaryProvided','==',false)
-            .get();
-          const eventsData = [];
-          await Promise.all(
-            eventsSnapshot.docs.map(async doc => {
-              const eventData = {id: doc.id, ...doc.data()};
-              const userSnapshot = await firestore()
-                .collection('Users')
-                .where('Useremail', '==', eventData.Useremail)
-                .get();
-              if (!userSnapshot.empty) {
-                const userData = userSnapshot.docs[0].data();
-                const filename = `${`Event${eventData.id}`}`;
-                try {
-                  const url = await storage().ref(filename).getDownloadURL();
-                  eventData.uri = url;
-                  const file2 = `${eventData.Useremail}`;
-                  const url2 = await storage().ref(file2).getDownloadURL();
-                  eventData.uri2 = url2;
-                } catch (error) {
-                  eventData.uri = null;
-                }
-              }
-              eventsData.push(eventData);
-            }),
-          );
-          setSummaryEvents(eventsData);
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    } else {
-      setSummaryEvents([]);
-    }
-  }
 
   const fetchUserData = async user => {
     if (user) {

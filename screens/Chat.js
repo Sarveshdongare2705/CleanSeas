@@ -19,6 +19,7 @@ import auth from '@react-native-firebase/auth';
 import storage from '@react-native-firebase/storage';
 import BottomNavigation from '../components/BottomNavigation';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import { colors } from '../Colors';
 
 const Chat = ({route}) => {
   const email1 = route.params.email;
@@ -184,7 +185,7 @@ const Chat = ({route}) => {
         backgroundColor: 'white',
         height: '100%',
       }}>
-      <StatusBar backgroundColor="#0077be" barStyle="dark-content" />
+      <StatusBar backgroundColor="white" barStyle="dark-content" />
       <View style={{height: isKeyboardOpen ? '86%' : '94%'}}>
         <View
           style={{
@@ -194,7 +195,7 @@ const Chat = ({route}) => {
             paddingLeft: 10,
             borderBottomWidth: 0.3,
             borderBottomColor: 'lightgray',
-            backgroundColor: '#0077be',
+            backgroundColor: colors.sandyBeige,
           }}>
           {profileImg !== null && (
             <Image
@@ -208,10 +209,10 @@ const Chat = ({route}) => {
                 padding: 10,
                 width: '100%',
               }}>
-              <Text style={{fontSize: 18, color: 'white'}}>
+              <Text style={{fontSize: 16, color: 'black'}}>
                 {orgDetails.Username}
               </Text>
-              <Text style={{fontSize: 10, color: 'white'}}>
+              <Text style={{fontSize: 10, color: 'black'}}>
                 {orgDetails.Role}
               </Text>
             </View>
@@ -247,9 +248,9 @@ const Chat = ({route}) => {
                         <Image
                           source={{uri: msg.uri}}
                           style={{
-                            width: 27,
-                            height: 27,
-                            borderRadius: 100,
+                            width: 30,
+                            height: 30,
+                            borderRadius: 10,
                             marginTop: 0,
                           }}
                         />
@@ -259,14 +260,14 @@ const Chat = ({route}) => {
                       <View
                         style={{
                           flexDirection: 'column',
-                          width: '89%',
+                          width: '86%',
                           borderWidth: 0.5,
-                          padding: 9,
+                          padding: 8,
                           borderColor: 'lightgray',
                           borderTopLeftRadius: 0,
-                          borderTopRightRadius: 30,
-                          borderBottomRightRadius: 30,
-                          borderBottomLeftRadius: 20,
+                          borderTopRightRadius: 7,
+                          borderBottomRightRadius: 7,
+                          borderBottomLeftRadius: 12,
                         }}>
                         <View
                           style={{
@@ -284,7 +285,8 @@ const Chat = ({route}) => {
                               style={{
                                 flexDirection: 'row',
                                 alignItems: 'center',
-                                gap: email1 === msg.senderEmail ? 215 : 235,
+                                justifyContent : 'space-between',
+                                width : '100%'
                               }}>
                               <View
                                 style={{
@@ -294,10 +296,10 @@ const Chat = ({route}) => {
                                 }}>
                                 <Text
                                   style={{
-                                    color: '#0077be',
-                                    fontSize: 15,
+                                    color: colors.aquaBlue,
+                                    fontSize: 14,
                                     flexDirection: 'row',
-                                    gap: 20,
+                                    gap: 1,
                                     fontWeight: '400',
                                   }}>
                                   {currentUser &&
@@ -309,8 +311,8 @@ const Chat = ({route}) => {
                                   <Image
                                     source={require('../assets/beach.png')}
                                     style={{
-                                      width: 17,
-                                      height: 17,
+                                      width: 14,
+                                      height: 14,
                                       borderRadius: 100,
                                     }}
                                   />
@@ -324,7 +326,6 @@ const Chat = ({route}) => {
                                     style={{
                                       width: 17,
                                       height: 17,
-                                      borderRadius: 100,
                                     }}
                                   />
                                 </TouchableOpacity>
@@ -351,9 +352,9 @@ const Chat = ({route}) => {
                           <Text
                             style={{
                               color: 'black',
-                              fontSize: 14,
-                              width: 240,
-                              marginTop: 10,
+                              fontSize: 13,
+                              width: '100%',
+                              marginTop: 5,
                             }}>
                             {msg.message}
                           </Text>
@@ -363,14 +364,14 @@ const Chat = ({route}) => {
                       <View
                         style={{
                           flexDirection: 'column',
-                          width: '89%',
+                          width: '84%',
                           borderWidth: 0.5,
                           padding: 9,
                           borderColor: 'lightgray',
                           borderTopLeftRadius: 0,
-                          borderTopRightRadius: 20,
-                          borderBottomRightRadius: 20,
-                          borderBottomLeftRadius: 20,
+                          borderTopRightRadius: 7,
+                          borderBottomRightRadius: 7,
+                          borderBottomLeftRadius: 10,
                         }}>
                         <View
                           style={{
@@ -388,7 +389,8 @@ const Chat = ({route}) => {
                               style={{
                                 flexDirection: 'row',
                                 alignItems: 'center',
-                                gap: email1 === msg.senderEmail ? 225 : 245,
+                                justifyContent : 'space-between',
+                                width : '100%',
                               }}>
                               <View
                                 style={{
@@ -398,8 +400,8 @@ const Chat = ({route}) => {
                                 }}>
                                 <Text
                                   style={{
-                                    color: '#0077be',
-                                    fontSize: 15,
+                                    color: colors.aquaBlue,
+                                    fontSize: 14,
                                     flexDirection: 'row',
                                     gap: 20,
                                     fontWeight: '400',
@@ -413,8 +415,8 @@ const Chat = ({route}) => {
                                   <Image
                                     source={require('../assets/beach.png')}
                                     style={{
-                                      width: 17,
-                                      height: 17,
+                                      width: 14,
+                                      height: 14,
                                       borderRadius: 100,
                                     }}
                                   />
@@ -455,9 +457,9 @@ const Chat = ({route}) => {
                           <Text
                             style={{
                               color: 'black',
-                              fontSize: 14,
-                              width: '95%',
-                              marginTop: 10,
+                              fontSize: 12,
+                              width: '100%',
+                              marginTop: 5,
                               marginLeft: 5,
                             }}>
                             {msg.message}
@@ -486,12 +488,12 @@ const Chat = ({route}) => {
             borderColor: 'gray',
             paddingLeft: 10,
             color: 'black',
-            borderRadius: 20,
+            borderRadius: 3,
             height: 37,
             marginBottom: 10,
           }}>
           <Image
-            source={require('../assets/msg.png')}
+            source={require('../assets/chat.png')}
             style={{width: 18, height: 18}}
           />
           <TextInput
@@ -499,7 +501,6 @@ const Chat = ({route}) => {
             placeholderTextColor="gray"
             style={{
               color: 'black',
-              borderRadius: 20,
               width: '90%',
             }}
             onChangeText={text => {
@@ -512,7 +513,7 @@ const Chat = ({route}) => {
           <TouchableOpacity onPress={sendMessage}>
             <Image
               source={require('../assets/send.png')}
-              style={{width: 30, height: 30, marginLeft: 10, marginBottom: 10}}
+              style={{width: 27, height: 27, marginLeft: 10, marginBottom: 10}}
             />
           </TouchableOpacity>
         )}

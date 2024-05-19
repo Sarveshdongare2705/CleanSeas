@@ -30,7 +30,7 @@ const Profile = ({route}) => {
   const [participations, setParticipations] = useState(0);
   const [followers, setFollowers] = useState(0);
   const [following, setFollowing] = useState(0);
-  const [events, setEvents] = useState(0);
+  const [eventsCount, setEventsCount] = useState(0);
   const [hasFollowed, setHasFolllowed] = useState(false);
   const [posts, setPosts] = useState([]);
   const [postsCount, setPostsCount] = useState(0);
@@ -42,20 +42,26 @@ const Profile = ({route}) => {
         .collection('Users')
         .where('Useremail', '==', routeEmail)
         .get();
+
       if (!userSnapShot.empty) {
         const userData = userSnapShot.docs[0].data();
-        setUserData(userData);
+        let profileImg = null;
         const filename = `${routeEmail}`;
+
         try {
-          url = await storage().ref(filename).getDownloadURL();
-          setProfileImg(url);
+          const url = await storage().ref(filename).getDownloadURL();
+          profileImg = url;
         } catch (error) {
-          setProfileImg(null);
+          profileImg = null;
         }
+
+        setUserData(userData);
+        setProfileImg(profileImg);
       }
       setUploading(false);
     }
   };
+
   const handleLogout = async () => {
     try {
       await auth().signOut();
@@ -75,28 +81,37 @@ const Profile = ({route}) => {
         .where('Useremail', '==', routeEmail)
         .get();
 
-      setParticipations(participantsSnapshot.docs.length);
+      const eventsSnapshot = await firestore()
+        .collection('Events')
+        .where('Useremail', '==', routeEmail)
+        .get();
 
       const followersSnapshot = await firestore()
         .collection('Followers')
         .where('followedEmail', '==', routeEmail)
         .get();
 
-      setFollowers(followersSnapshot.docs.length);
-
       const followingSnapshot = await firestore()
         .collection('Followers')
         .where('followerEmail', '==', routeEmail)
         .get();
 
-      setFollowing(followingSnapshot.docs.length);
-
-      const eventsSnapshot = await firestore()
+      const postsSnapshot = await firestore()
         .collection('Posts')
         .where('Useremail', '==', routeEmail)
         .get();
 
-      setPostsCount(eventsSnapshot.docs.length);
+      const participations = participantsSnapshot.docs.length;
+      const eventsCount = eventsSnapshot.docs.length;
+      const followers = followersSnapshot.docs.length;
+      const following = followingSnapshot.docs.length;
+      const postsCount = postsSnapshot.docs.length;
+
+      setParticipations(participations);
+      setEventsCount(eventsCount);
+      setFollowers(followers);
+      setFollowing(following);
+      setPostsCount(postsCount);
     } catch (err) {
       console.error(err);
     }
@@ -188,15 +203,15 @@ const Profile = ({route}) => {
     useCallback(() => {
       const unsubscribe = auth().onAuthStateChanged(user => {
         setPostsCount(0);
-        setCurrentUser(user);
-        getPosts(routeEmail);
-        fetchUserData();
         setFollowers(0);
         setParticipations(0);
         setFollowing(0);
         setHasFolllowed(false);
+        setCurrentUser(user);
+        fetchUserData();
         checkFollow(user);
         fetchParticipations();
+        getPosts(routeEmail);
       });
       return unsubscribe;
     }, [routeEmail]),
@@ -206,6 +221,7 @@ const Profile = ({route}) => {
     setUploading(false);
     await fetchUserData();
     await getPosts(routeEmail);
+    await fetchParticipations();
   };
 
   return (
@@ -219,7 +235,12 @@ const Profile = ({route}) => {
               {currentUser.email === routeEmail && (
                 <View style={{flexDirection: 'row', gap: 7}}>
                   <TouchableOpacity
-                    onPress={() => navigation.navigate('CreatePost')}>
+                    onPress={() =>
+                      navigation.navigate('CreatePost', {
+                        routeEmail: routeEmail,
+                        role: userData && userData.Role.trim(),
+                      })
+                    }>
                     <FastImage
                       source={require('../assets/add.png')}
                       style={{width: 24, height: 24, alignItems: 'flex-end'}}
@@ -273,12 +294,12 @@ const Profile = ({route}) => {
                     borderWidth: 3,
                     borderColor: 'white',
                     borderColor: colors.sandyBeige,
-                    borderRadius : 100,
-                    marginLeft :-3
+                    borderRadius: 100,
+                    marginLeft: -3,
                   }}>
                   {profileImg ? (
                     <TouchableOpacity
-                      onPress={() =>
+                      onLongPress={() =>
                         navigation.navigate('Image', {
                           uri: profileImg,
                           path: 'Profile',
@@ -301,12 +322,38 @@ const Profile = ({route}) => {
                         resizeMode={FastImage.resizeMode.cover}
                       />
                     </TouchableOpacity>
+                  ) : userData && userData.gender === 'Male' ? (
+                    <FastImage
+                      source={require('../assets/profileImage.png')}
+                      style={{
+                        width: 70,
+                        height: 70,
+                        alignItems: 'flex-end',
+                        borderRadius: 100,
+                        borderWidth: 2,
+                        borderColor: 'white',
+                      }}
+                      resizeMode={FastImage.resizeMode.cover}
+                    />
+                  ) : userData && userData.gender === 'Female' ? (
+                    <FastImage
+                      source={require('../assets/profileImage2.png')}
+                      style={{
+                        width: 70,
+                        height: 70,
+                        alignItems: 'flex-end',
+                        borderRadius: 100,
+                        borderWidth: 2,
+                        borderColor: 'white',
+                      }}
+                      resizeMode={FastImage.resizeMode.cover}
+                    />
                   ) : (
                     <FastImage
-                      source={require('../assets/profile.png')}
+                      source={require('../assets/profileImage1.png')}
                       style={{
-                        width: 80,
-                        height: 80,
+                        width: 70,
+                        height: 70,
                         alignItems: 'flex-end',
                         borderRadius: 100,
                         borderWidth: 2,
@@ -317,10 +364,17 @@ const Profile = ({route}) => {
                   )}
                 </View>
                 <View style={styles.details}>
-                  <View style={styles.detail}>
-                    <Text style={styles.value}>{participations}</Text>
-                    <Text style={styles.heading}>participations</Text>
-                  </View>
+                  {userData && userData.Role.trim() === 'Organization' ? (
+                    <View style={styles.detail}>
+                      <Text style={styles.value}>{eventsCount}</Text>
+                      <Text style={styles.heading}>events</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.detail}>
+                      <Text style={styles.value}>{participations}</Text>
+                      <Text style={styles.heading}>participations</Text>
+                    </View>
+                  )}
                   <View style={styles.detail}>
                     <Text style={styles.value}>{followers}</Text>
                     <Text style={styles.heading}>followers</Text>
@@ -372,6 +426,38 @@ const Profile = ({route}) => {
                 )}
               </View>
               <View style={styles.heading}>
+                {userData &&
+                currentUser &&
+                userData.Role.trim() === 'Organization' &&
+                currentUser.email === routeEmail ? (
+                  <TouchableOpacity
+                    style={[
+                      styles.btn,
+                      {
+                        width: '100%',
+                        marginBottom: 12,
+                        height: 36,
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        paddingHorizontal: 15,
+                      },
+                    ]}
+                    onPress={() => navigation.navigate('CreateDrive')}>
+                    <Text style={styles.btntext}>Create Event</Text>
+                    <FastImage
+                      source={require('../assets/forward.png')}
+                      style={{
+                        width: 24,
+                        height: 24,
+                        alignItems: 'flex-end',
+                      }}
+                      resizeMode={FastImage.resizeMode.cover}
+                    />
+                  </TouchableOpacity>
+                ) : (
+                  <View></View>
+                )}
                 <Text
                   style={[
                     {
@@ -469,7 +555,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-evenly',
     alignItems: 'center',
-    width: '75%',
+    width: '84%',
+    marginLeft: -10,
   },
   detail: {
     display: 'flex',

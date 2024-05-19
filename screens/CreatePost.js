@@ -7,6 +7,7 @@ import {
   Image,
   Alert,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import React, {useCallback, useEffect, useState} from 'react';
 import Loader from '../components/Loader';
@@ -15,36 +16,52 @@ import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import storage from '@react-native-firebase/storage';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
-import {useFocusEffect} from '@react-navigation/native';
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
+import {colors} from '../Colors';
 
-const CreatePost = props => {
+const CreatePost = () => {
+  const route = useRoute();
+  const {routeEmail, role} = route.params;
+  const navigation = useNavigation();
+  console.log('hi ' + routeEmail + role);
   const [image, setImage] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [userData, setUserData] = useState(null);
-  const [titleerr, showTitleErr] = useState(false);
-  const [descerr, showDescErr] = useState(false);
+  const [titleErr, showTitleErr] = useState(false);
   const [description, setDescription] = useState('');
   const [title, setTitle] = useState('');
-  const [inputHeight, setInputHeight] = useState(100);
-
-  const handleContentSizeChange = event => {
-    setInputHeight(event.nativeEvent.contentSize.height);
-  };
-
-  const fetchUserData = async user => {
-    if (user) {
-      const userSnapShot = await firestore()
-        .collection('Users')
-        .where('Useremail', '==', user.email)
+  const [showMenu, setShowMenu] = useState(false);
+  const [linkId, setLinkId] = useState('');
+  const [isLink, setisLink] = useState(false);
+  const [events, setEvents] = useState([]);
+  const getEvents = async () => {
+    try {
+      const eventsSnapshot = await firestore()
+        .collection('Events')
+        .where('Useremail', '==', routeEmail)
         .get();
-      if (!userSnapShot.empty) {
-        const userData = userSnapShot.docs[0].data();
-        setUserData(userData);
-      }
-    } else {
-      setCurrentUser(null);
-      setUserData(null);
+      const eventsData = [];
+      await Promise.all(
+        eventsSnapshot.docs.map(async doc => {
+          const eventData = {id: doc.id, ...doc.data()};
+          const filename = `${`Event${eventData.id}`}`;
+          try {
+            const url = await storage().ref(filename).getDownloadURL();
+            eventData.uri = url;
+          } catch (error) {
+            eventData.uri = null;
+          }
+          eventsData.push(eventData);
+        }),
+      );
+      setEvents(eventsData);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -52,141 +69,214 @@ const CreatePost = props => {
     useCallback(() => {
       const unsubscribe = auth().onAuthStateChanged(user => {
         setCurrentUser(user);
-        fetchUserData(user);
+        setisLink(false);
+        setLinkId('');
+        getEvents();
         setImage(null);
-        showTitleErr(false);
-        showDescErr(false);
+        setTitle('');
+        setShowMenu(false);
       });
-
       return unsubscribe;
     }, []),
   );
 
   const pickImage = async () => {
     const result = await launchImageLibrary({mediaType: 'photo'});
-    console.log(result);
-    setImage(result);
+    if (result.didCancel) {
+      console.log('User cancelled image picker');
+    } else if (result.errorCode) {
+      console.log('ImagePicker Error: ', result.errorMessage);
+    } else {
+      console.log(result);
+      setImage(result);
+    }
   };
 
-  //upload to firebase
+  useEffect(() => {
+    showTitleErr(title === '');
+  }, [title]);
+
   const createPost = async () => {
     try {
-      if (title === '') {
-        showTitleErr(true);
-      }
-      if (description === '') {
-        showDescErr(true);
-      }
-      setUploading(true);
-      const timestamp = firestore.Timestamp.now();
-      const PostData = {
-        Useremail: userData.Useremail,
-        title: title,
-        desc: description,
-        time: timestamp,
-      };
-      const PostRef = await firestore().collection('Posts').add(PostData);
-      console.log('Post posted');
+      if (!titleErr) {
+        setUploading(true);
+        const timestamp = firestore.Timestamp.now();
+        let PostData = {};
+        isLink
+          ? (PostData = {
+              Useremail: routeEmail,
+              title: title,
+              desc: description,
+              time: timestamp,
+              EventId : linkId,
+              isLink : true,
+            })
+          : (PostData = {
+              Useremail: routeEmail,
+              title: title,
+              desc: description,
+              time: timestamp,
+              isLink : false,
+            });
+        const PostRef = await firestore().collection('Posts').add(PostData);
+        console.log('Post posted');
 
-      if (image !== null) {
-        const postId = PostRef.id;
-        const reference = storage().ref(`Post${postId}`);
-        await reference.putFile(image.assets[0].uri);
-        console.log('Image uploaded successfullly');
+        if (image !== null) {
+          const postId = PostRef.id;
+          const reference = storage().ref(`Post${postId}`);
+          await reference.putFile(image.assets[0].uri);
+          console.log('Image uploaded successfullly');
+        }
+        setUploading(false);
+        navigation.navigate('Community');
       }
-      setUploading(false);
-      props.navigation.navigate('Community');
     } catch (err) {
       console.error(err);
     }
   };
 
   return (
-    <View style={styles.container}>
+    <View style={{height: '100%', backgroundColor: 'white'}}>
+      <View>
+        <TouchableOpacity
+          style={{
+            paddingTop: 20,
+            paddingHorizontal: 20,
+            flexDirection: 'row',
+            gap: 10,
+            alignItems: 'center',
+          }}
+          onPress={() => navigation.navigate('Profile', {email: routeEmail})}>
+          <Image
+            source={require('../assets/back.png')}
+            style={{width: 20, height: 20, alignItems: 'flex-start'}}
+          />
+          <Text style={{color: 'black'}}>Create a Post</Text>
+        </TouchableOpacity>
+      </View>
       {uploading ? (
-        <Loader />
+        <ActivityIndicator size="large" color={colors.aquaBlue} />
       ) : (
-        <View style={styles.container}>
-          <TouchableOpacity
-            onPress={() => props.navigation.navigate('Community')}>
-            <Text
-              style={{
-                fontWeight: '100',
-                fontSize: 15,
-                color: 'lightgray',
-                marginLeft: -150,
-              }}>
-              Back
-            </Text>
-          </TouchableOpacity>
-          <View>
-            <Text style={{color: 'black'}}>Create a Post</Text>
-          </View>
-          <ScrollView style={styles.scrollview}>
+        <ScrollView style={styles.container}>
+          <View style={styles.content}>
+            <TouchableOpacity onPress={pickImage} style={{width: '96%'}}>
+              {image ? (
+                <Image
+                  source={{uri: image.assets[0].uri}}
+                  style={styles.img}></Image>
+              ) : (
+                <View style={styles.img}>
+                  <Text style={{color: 'gray'}}>Upload Image here</Text>
+                </View>
+              )}
+            </TouchableOpacity>
             <View style={styles.form}>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  titleErr && {borderColor: colors.errorRed, borderWidth: 1},
+                ]}
                 placeholder={`Enter title`}
                 placeholderTextColor="gray"
-                maxLength={60}
+                maxLength={90}
                 value={title}
                 onChangeText={text => {
                   setTitle(text);
                 }}
               />
-              <Text style={styles.err}>
-                {titleerr && 'Please enter valid title'}
-              </Text>
               <TextInput
-                style={[styles.input, {height: Math.max(100, inputHeight)}]}
-                maxLength={10000}
+                style={[styles.input, {height: 180}]}
+                maxLength={500}
                 placeholder="Enter Post"
                 placeholderTextColor="gray"
                 multiline={true}
-                numberOfLines={100}
+                numberOfLines={18}
                 value={description}
                 onChangeText={setDescription}
-                onContentSizeChange={handleContentSizeChange}
               />
-              <Text style={styles.err}>
-                {descerr && 'Please enter valid description'}
-              </Text>
-            </View>
-            <View style={{marginTop: 50}}>
-              {image ? (
-                  <Image
-                      source={{uri: image.assets[0].uri}}
-                      style={{
-                        width: 320,
-                        height: 240,
-                        borderRadius: 20,
-                        padding: 10,
-                        objectFit: 'cover',
-                      }}
+              {role === 'Organization' && (
+                <TouchableOpacity
+                  style={[styles.input]}
+                  onPress={() => setShowMenu(!showMenu)}>
+                  <View
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginRight: 20,
+                    }}>
+                    <TextInput
+                      placeholder={`Want to link Event`}
+                      placeholderTextColor="gray"
+                      value={linkId}
+                      maxLength={50}
+                      editable={false}
+                      style={{color: 'black'}}
+                    />
+                    <Image
+                      source={
+                        showMenu
+                          ? require('../assets/up.png')
+                          : require('../assets/down.png')
+                      }
+                      style={{width: 13, height: 13, alignItems: 'flex-start'}}
+                    />
+                  </View>
+                </TouchableOpacity>
+              )}
+              {showMenu ? (
+                <View style={styles.menu}>
+                  <TouchableOpacity
+                    style={styles.opt}
+                    onPress={() => {
+                      setisLink(false);
+                      setLinkId('');
+                      setShowMenu(false);
+                    }}>
+                    <View style={{flexDirection: 'column', gap: 5}}>
+                      <Text style={{color: 'black', width: '100%'}}>
+                        {'Select'}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                  {events.map(event => (
+                    <TouchableOpacity
+                      style={styles.opt}
+                      onPress={() => {
+                        setisLink(true);
+                        setLinkId(event.id);
+                        setShowMenu(false);
+                      }}>
+                      <Image
+                        source={{uri: event.uri}}
+                        style={{
+                          width: 60,
+                          height: 40,
+                        }}
                       />
+                      <View style={{flexDirection: 'column', gap: 5}}>
+                        <Text style={{color: 'black', width: '80%'}}>
+                          {event.Title}
+                        </Text>
+                        <Text style={{color: 'black', width: '85%'}}>
+                          {event.Date}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
               ) : (
                 <View></View>
               )}
             </View>
-          </ScrollView>
-          <View style={{flexDirection: 'row', gap: 10}}>
-            <TouchableOpacity
-              style={[
-                styles.button,
-                {width: '50%', borderWidth: 0.5, borderColor: '#57DDFB'},
-              ]}
-              onPress={pickImage}>
-              <Text style={{fontWeight: '900', fontSize: 15, color: '#57DDFB'}}>
-                Upload Photo
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.button, styles.signUpButton, {width: '50%'}]}
-              onPress={createPost}>
-              <Text style={{fontWeight: '900', fontSize: 15}}>Create Post</Text>
-            </TouchableOpacity>
+            <View style={[styles.btn, {}]}>
+              <TouchableOpacity onPress={createPost}>
+                <Text style={styles.btntext}>Create Post</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        </ScrollView>
       )}
     </View>
   );
@@ -199,52 +289,81 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 10,
     backgroundColor: 'white',
-    alignItems: 'center',
   },
-  scrollview: {
+  content: {
+    display: 'flex',
     flexDirection: 'column',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   form: {
+    width: '100%',
     marginTop: 40,
     flexDirection: 'column',
-    gap: 10,
+    alignItems: 'center',
+    gap: 12,
   },
   element: {
     marginTop: -10,
     flexDirection: 'column',
     gap: 7,
   },
-  inputelement: {
-    borderRadius: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   input: {
     color: 'black',
-    borderWidth: 0.3,
-    borderBottomColor: 'gray',
-    width: 320,
+    borderWidth: 0.2,
+    width: '98%',
     paddingLeft: 20,
+    borderColor: 'gray',
+    borderRadius: 3,
+    height: 50,
+    paddingRight :10
   },
-  button: {
+  btn: {
+    width: '60%',
+    height: 36,
+    borderWidth: 1,
+    borderColor: 'black',
+    borderRadius: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'black',
+    marginTop: 20,
+  },
+  btntext: {
+    fontSize: 14,
+    color: 'white',
+    fontWeight: '500',
+  },
+  img: {
+    borderWidth: 0.6,
+    borderColor: 'lightgray',
     width: '100%',
-    padding: 12,
-    borderRadius: 20,
-    marginBottom: 10,
+    height: 180,
     marginTop: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: 3,
+    borderStyle: 'dashed',
+    objectFit: 'cover',
   },
-  signUpButton: {
-    backgroundColor: '#57DDFB',
+  menu: {
+    width: '96%',
+    borderWidth: 0.3,
+    borderColor: 'black',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginTop: -10,
+    borderRadius: 3,
   },
-  err: {
-    marginTop: -7,
-    fontWeight: '900',
-    opacity: 0.8,
-    fontSize: 10,
-    color: 'red',
-    textAlign: 'right',
-    paddingRight: 10,
+  opt: {
+    paddingVertical: 15,
+    borderBottomColor: 'lightgray',
+    borderBottomWidth: 0.3,
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 5,
+    width: '100%',
   },
 });

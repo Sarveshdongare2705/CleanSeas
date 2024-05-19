@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {
+  ActivityIndicator,
   Image,
   ImageBackground,
   ScrollView,
@@ -15,6 +16,7 @@ import BottomNavigation from '../components/BottomNavigation';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 import {useNavigation} from '@react-navigation/native';
+import {colors} from '../Colors';
 
 const Search = props => {
   const navigation = useNavigation();
@@ -22,85 +24,109 @@ const Search = props => {
   const [search, setSearch] = useState('');
   const [searcherr, showSearchErr] = useState(false);
   const [users, setUsers] = useState([]);
+  const [usersCache, setUsersCache] = useState({});
+  const [updating, setUpdating] = useState(false);
+
+  const fetchAllUsers = async () => {
+    try {
+      const usersSnapshot = await firestore().collection('Users').get();
+      const cache = {};
+
+      usersSnapshot.docs.forEach(doc => {
+        const userData = {id: doc.id, ...doc.data()};
+        cache[userData.Useremail] = userData.Username;
+      });
+
+      setUsersCache(cache);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleSearch = async searchVal => {
-    if (searchVal.trim() !== '') {
+    const searchValLower = searchVal.toLowerCase();
+    if (searchValLower.trim() !== '') {
+      setUpdating(true);
+      showSearchErr(false);
+      const matchedEmails = Object.keys(usersCache).filter(email =>
+        usersCache[email].toLowerCase().includes(searchValLower),
+      );
+      if (matchedEmails.length === 0) {
+        setUsers([]);
+        showSearchErr(true);
+        return;
+      }
       try {
-        const usersSnapshot = await firestore()
-          .collection('Users')
-          .where('Username', '>=', searchVal.trim())
-          .where('Username', '<=', searchVal.trim() + '\uf8ff')
-          .get();
-
         const usersData = await Promise.all(
-          usersSnapshot.docs.map(async doc => {
-            const userData = {id: doc.id, ...doc.data()};
-            const filename = `${userData.Useremail}`;
+          matchedEmails.map(async email => {
+            const userSnapShot = await firestore()
+              .collection('Users')
+              .where('Useremail', '==', email)
+              .get();
+
+            const userDoc = userSnapShot.docs[0];
+            const userData = {id: userDoc.id, ...userDoc.data()};
+
             try {
-              const url = await storage().ref(filename).getDownloadURL();
+              const url = await storage().ref(email).getDownloadURL();
               userData.uri = url;
             } catch (error) {
-              console.error('Error fetching download URL:', error);
+              userData.uri = null;
             }
+
             return userData;
           }),
         );
-
+        setUpdating(false);
         setUsers(usersData);
+        showSearchErr(usersData.length === 0);
       } catch (err) {
         console.error(err);
       }
     } else {
       setUsers([]);
+      setUpdating(false);
+      showSearchErr(false);
     }
   };
 
   useEffect(() => {
+    fetchAllUsers();
+
     const unsubscribe = auth().onAuthStateChanged(user => {
       if (user) {
         setCurrentUser(user);
+        setUpdating(false);
+        showSearchErr(false);
         setUsers([]);
         setSearch('');
       } else {
         setCurrentUser(null);
       }
     });
+
     return unsubscribe;
   }, []);
 
   return (
     <View
       style={[styles.container, {flex: 1, justifyContent: 'space-between'}]}>
-      <StatusBar backgroundColor="#0077be" barStyle="dark-content" />
-      <View style={{backgroundColor: '#0077be'}}>
-        <Text
-          style={{
-            color: 'white',
-            fontSize: 18,
-            marginTop: 10,
-            textAlign: 'center',
-            marginBottom: 10,
-          }}>
-          Search Users
-        </Text>
-      </View>
+      <StatusBar backgroundColor="white" barStyle="dark-content" />
       <View>
         <View style={{flexDirection: 'row', alignItems: 'center', gap: -5}}>
           <View
             style={{
-              marginLeft: 15,
-              width: 230,
-              height: 45,
+              width: '100%',
               flexDirection: 'row',
-              gap: 7,
+              gap: 5,
               justifyContent: 'flex-start',
               alignItems: 'center',
               borderWidth: 0.3,
               borderColor: 'gray',
               paddingLeft: 10,
               color: 'black',
-              borderRadius: 20,
-              height: 37,
+              borderRadius: 3,
+              height: 38,
             }}>
             <Image
               source={require('../assets/search.png')}
@@ -111,8 +137,7 @@ const Search = props => {
               placeholderTextColor="gray"
               style={{
                 color: 'black',
-                borderRadius: 20,
-                width: 180,
+                width: '90%',
               }}
               onChangeText={text => {
                 setSearch(text);
@@ -121,105 +146,123 @@ const Search = props => {
               value={search}
             />
           </View>
-          <TouchableOpacity onPress={() => handleSearch(search)}>
-            <View style={{position: 'relative'}}>
-              <Text
-                style={{
-                  color: 'white',
-                  fontWeight: 'bold',
-                  padding: 9,
-                  width: 100,
-                  height: 36,
-                  margin: 10,
-                  backgroundColor: 'white',
-                  textAlign: 'center',
-                  color: '#0077be',
-                  borderRadius: 20,
-                  fontSize: 13,
-                  borderWidth: 0.5,
-                  borderColor: '#0077be',
-                }}>
-                Search
-              </Text>
-            </View>
-          </TouchableOpacity>
         </View>
         <View style={{paddingTop: 7}}>
-          <ScrollView style={{height: 560}}>
-            {users.map(org => (
-              <TouchableOpacity
-                key={org.id}
-                onPress={() => {
-                  navigation.navigate('Profile', {email: org.Useremail});
-                }}>
-                <View
-                  key={org.id}
-                  style={{
-                    borderWidth: 0.5,
-                    borderColor: 'lightgray',
-                    width: '97%',
-                    height: 70,
-                    marginRight: 10,
-                    flexDirection: 'row',
-                    margin: 5,
-                    borderRadius: 20,
-                    paddingLeft: 10,
-                    gap: 5,
-                    alignItems: 'center',
-                  }}>
-                  {org && (
-                    <Image
-                      source={{uri: org.uri}}
-                      style={{
-                        marginTop: -14,
-                        top: 7,
-                        width: 50,
-                        height: 50,
-                        borderRadius: 100,
-                      }}
-                    />
-                  )}
-                  <View style={{padding: 5}}>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        gap: 3,
-                        alignItems: 'center',
-                        height: 38,
-                      }}>
-                      <View>
-                        <Text
-                          style={{
-                            color: 'black',
-                            fontSize: 17,
-                            width: 270,
-                          }}>
-                          {org.Username}
-                        </Text>
-                        <Text
-                          style={{
-                            color: 'gray',
-                            fontSize: 12,
-                            width: 270,
-                          }}>
-                          {'Check our profile'}
-                        </Text>
-                      </View>
-                    </View>
-                    <View
-                      style={{
-                        flexDirection: 'row',
-                        gap: 50,
-                        alignItems: 'center',
-                      }}></View>
-                  </View>
+          {searcherr ? (
+            <View>
+              <Text style={{color: 'black'}}>{'No users Found'}</Text>
+            </View>
+          ) : (
+            <ScrollView style={{height: '90%'}}>
+              {users.length !== 0 ? (
+                <View style={{marginBottom: 10}}>
+                  <Text style={{color: 'black'}}>
+                    {users.length === 1
+                      ? users.length + ' User Found '
+                      : users.length + ' Users Found '}
+                  </Text>
                 </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+              ) : (
+                updating && (
+                  <View
+                    style={{
+                      marginBottom: 10,
+                      alignItems: 'flex-start',
+                      marginLeft: 5,
+                    }}>
+                    <ActivityIndicator color={'black'} size={'small'} />
+                  </View>
+                )
+              )}
+              {users.map(user => (
+                <TouchableOpacity
+                  key={user.id}
+                  onPress={() => {
+                    navigation.navigate('Profile', {email: user.Useremail});
+                  }}>
+                  <View
+                    key={user.id}
+                    style={{
+                      borderWidth: 0.5,
+                      borderColor: 'lightgray',
+                      width: '100%',
+                      height: 70,
+                      marginRight: 10,
+                      flexDirection: 'row',
+                      borderRadius: 3,
+                      paddingLeft: 10,
+                      gap: 5,
+                      alignItems: 'center',
+                      marginBottom: 10,
+                    }}>
+                    {user.uri ? (
+                      <Image
+                        source={{uri: user.uri}}
+                        style={{
+                          marginTop: -14,
+                          top: 7,
+                          width: 50,
+                          height: 50,
+                          borderRadius: 100,
+                        }}
+                      />
+                    ) : (
+                      <Image
+                        source={require('../assets/profile.png')}
+                        style={{
+                          marginTop: -14,
+                          top: 7,
+                          width: 40,
+                          height: 40,
+                          marginRight: 10,
+                        }}
+                      />
+                    )}
+                    <View style={{padding: 5}}>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          gap: 3,
+                          alignItems: 'center',
+                          height: 38,
+                        }}>
+                        <View>
+                          <Text
+                            style={{
+                              color: 'black',
+                              fontSize: 17,
+                              width: 270,
+                            }}>
+                            {user.Username}
+                          </Text>
+                          <Text
+                            style={{
+                              color: 'gray',
+                              fontSize: 12,
+                              width: 270,
+                            }}>
+                            {'Check out profile'}
+                          </Text>
+                        </View>
+                      </View>
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          gap: 50,
+                          alignItems: 'center',
+                        }}></View>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
         </View>
       </View>
-      <BottomNavigation />
+      <View
+        style={{position: 'absolute', bottom: '0%', left: '3%', right: '3%'}}>
+        <BottomNavigation />
+      </View>
     </View>
   );
 };
@@ -230,6 +273,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'white',
+    paddingHorizontal: 7,
+    paddingVertical: 7,
+    height: '100%',
   },
   content: {
     flex: 1,
